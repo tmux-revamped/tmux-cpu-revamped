@@ -181,7 +181,7 @@ teardown() {
 @test "cpu.sh dispatcher - bind subcommand binds the popup key" {
   _tmux() { printf '%s\n' "$*" >> "${TEST_TMPDIR}/calls"; }
   run main bind
-  grep -q "bind-key C run-shell" "${TEST_TMPDIR}/calls"
+  grep -q "bind-key M-c run-shell" "${TEST_TMPDIR}/calls"
 }
 
 @test "cpu.sh dispatcher - cpu_should_sample is true when throttle is off" {

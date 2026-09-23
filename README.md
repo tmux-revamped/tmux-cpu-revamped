@@ -108,7 +108,7 @@ next refresh.
 | `@cpu_revamped_load_medium_ratio` | `0.7` | per-core load ratio at which `#{cpu_load_color}` becomes medium |
 | `@cpu_revamped_load_high_ratio` | `1.0` | per-core load ratio at which `#{cpu_load_color}` becomes high |
 | `@cpu_revamped_alert_icon` | `!` | glyph shown by `#{cpu_alert}` when load or temperature is high |
-| `@cpu_revamped_popup_key` | `C` | `prefix` key that opens the detail popup |
+| `@cpu_revamped_popup_key` | `M-c` | `prefix` key that opens the detail popup |
 | `@cpu_revamped_popup_command` | `btop` | command run inside the detail popup |
 | `@cpu_revamped_popup_width` | `80%` | detail popup width |
 | `@cpu_revamped_popup_height` | `80%` | detail popup height |
@@ -117,7 +117,7 @@ next refresh.
 
 ## Detail popup
 
-Press `prefix + C` to open a detail popup running `btop` (configurable). The popup
+Press `prefix + M-c` to open a detail popup running `btop` (configurable). The popup
 uses tmux `display-popup`, available on tmux 3.2 and newer; on older tmux it shows
 a short message instead. Rebind or repoint it:
 

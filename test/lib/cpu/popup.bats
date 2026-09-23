@@ -96,7 +96,7 @@ teardown() {
 @test "popup.sh - cpu_popup_bind binds the default key" {
   _tmux() { printf '%s\n' "$*" >> "${CALLS}"; }
   cpu_popup_bind "/path/to/cpu.sh"
-  grep -q "bind-key C run-shell /path/to/cpu.sh popup" "${CALLS}"
+  grep -q "bind-key M-c run-shell /path/to/cpu.sh popup" "${CALLS}"
 }
 
 @test "popup.sh - cpu_popup_bind honors the key option" {
