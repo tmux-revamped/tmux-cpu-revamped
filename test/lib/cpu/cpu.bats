@@ -381,3 +381,13 @@ teardown() {
 
   [[ "${output}" == "46" ]]
 }
+
+@test "cpu - the busiest process is picked by its decimals under a comma-decimal locale" {
+  locale -a 2>/dev/null | grep -qiE '^pt_BR\.utf-?8$' || skip "the pt_BR.UTF-8 locale is not installed"
+  local txt
+  txt=$'%CPU COMM\n12.3 /bin/first\n12.7 /bin/second'
+
+  LC_ALL=pt_BR.UTF-8 LC_NUMERIC=pt_BR.UTF-8 run cpu_top_from_ps "${txt}"
+
+  [[ "${output}" == "second 12%" ]]
+}

@@ -18,6 +18,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A comma-decimal locale such as pt_BR broke the Fahrenheit conversion and
   the iStats temperature parse, which read `45.6` as 45 or printed a comma.
   The arithmetic now runs under the C locale.
+- The busiest-process reading compared only whole percentages under a
+  comma-decimal locale, so 12.7 and 12.3 tied. `ps` and its parser now run
+  under the C locale.
 
 ## [1.3.0] - 2026-06-29
 
