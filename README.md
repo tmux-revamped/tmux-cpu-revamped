@@ -137,6 +137,26 @@ Run the dispatcher with `doctor` to see why a token may be empty on this host:
 It reports the platform, whether the popup is supported, the temperature source
 that applies here, and which optional tools are installed.
 
+## Labels
+
+Every value placeholder can carry a label, an icon or word printed before the value only when the value is not empty, so each figure on the bar says what it is. Set `@cpu_revamped_<metric>_label` for one metric, or `@cpu_revamped_icons` to `nerd` to label every metric from a Nerd Font set. A metric's own label wins over the set, and setting it to `''` removes the set's label for that metric. The default, `ascii`, adds no labels, so existing bars render unchanged.
+
+```tmux
+set -g @cpu_revamped_icons 'nerd'
+set -g @cpu_revamped_percentage_label ''
+```
+
+| Metric | `nerd` glyph |
+|--------|--------------|
+| `percentage` | `md-gauge` |
+| `temp` | `md-thermometer` |
+| `freq` | `md-speedometer` |
+| `load, load5, load15` | `md-scale_balance` |
+| `count` | `md-chip` |
+| `graph` | `md-chart_line_variant` |
+| `top_process` | `md-application` |
+| `governor` | `md-tune` |
+
 ## Theme color suggestions
 
 The defaults use the 16 ANSI color names, which the active tmux theme remaps, so the plugin matches any theme out of the box; for exact hex matches copy one block below.

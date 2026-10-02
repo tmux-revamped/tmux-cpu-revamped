@@ -80,18 +80,8 @@ cpu_tick() {
   cache_refresh_if_stale percent "$(cpu_max_age)" cpu_refresh
 }
 
-main() {
-  local cmd="${1:-}"
-
-  case "${cmd}" in
-    refresh) cpu_refresh; return 0 ;;
-    popup)   cpu_popup_open; return 0 ;;
-    doctor)  cpu_doctor; return 0 ;;
-    bind)    cpu_popup_bind "${PLUGIN_DIR}/src/cpu.sh"; return 0 ;;
-  esac
-
-  cpu_tick
-
+cpu_render_metric() {
+  local cmd="${1}"
   case "${cmd}" in
     percentage)    cpu_render_percentage "$(cache_get percent)" ;;
     icon)          cpu_render_icon "$(cache_get percent)" ;;
@@ -113,6 +103,74 @@ main() {
     alert)         cpu_render_alert "$(cache_get percent)" "$(cache_get temp)" ;;
     *)             return 0 ;;
   esac
+}
+
+cpu_is_labelled() {
+  case "${1}" in
+    percentage | temp | freq | load | load5 | load15 | count | graph | top_process | governor) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+cpu_nerd_label() {
+  case "${1}" in
+    percentage) printf '\xf3\xb0\x8a\x9a' ;;
+    temp) printf '\xf3\xb0\x94\x8f' ;;
+    freq) printf '\xf3\xb0\x93\x85' ;;
+    load) printf '\xf3\xb0\x97\x91' ;;
+    load5) printf '\xf3\xb0\x97\x91' ;;
+    load15) printf '\xf3\xb0\x97\x91' ;;
+    count) printf '\xf3\xb0\x98\x9a' ;;
+    graph) printf '\xf3\xb0\x9e\xb1' ;;
+    top_process) printf '\xf3\xb0\xa3\x86' ;;
+    governor) printf '\xf3\xb0\x98\xae' ;;
+    *) printf '' ;;
+  esac
+}
+
+cpu_option_exists() {
+  [[ -n "$(tmux show-option -gq "${1}" 2>/dev/null)" ]]
+}
+
+cpu_label() {
+  local option="@cpu_revamped_${1}_label"
+  if cpu_option_exists "${option}"; then
+    tmux show-option -gqv "${option}" 2>/dev/null
+  elif [[ "$(get_tmux_option "@cpu_revamped_icons" "ascii")" == "nerd" ]]; then
+    cpu_nerd_label "${1}"
+  fi
+}
+
+cpu_labelled() {
+  local metric="${1}" value="${2}" label
+  [[ -n "${value}" ]] || return 0
+  label="$(cpu_label "${metric}")"
+  if [[ -n "${label}" ]]; then
+    printf '%s %s\n' "${label}" "${value}"
+  else
+    printf '%s\n' "${value}"
+  fi
+}
+
+main() {
+  local cmd="${1:-}"
+
+  case "${cmd}" in
+    refresh) cpu_refresh; return 0 ;;
+    popup)   cpu_popup_open; return 0 ;;
+    doctor)  cpu_doctor; return 0 ;;
+    bind)    cpu_popup_bind "${PLUGIN_DIR}/src/cpu.sh"; return 0 ;;
+  esac
+
+  cpu_tick
+
+  local out
+  out="$(cpu_render_metric "${cmd}")"
+  if cpu_is_labelled "${cmd}"; then
+    cpu_labelled "${cmd}" "${out}"
+  elif [[ -n "${out}" ]]; then
+    printf '%s\n' "${out}"
+  fi
 }
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
