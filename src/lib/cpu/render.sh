@@ -28,7 +28,7 @@ _cpu_level() {
 # _cpu_c_to_f CELSIUS -> integer Fahrenheit.
 _cpu_c_to_f() {
   [[ "${1}" =~ ^-?[0-9]+$ ]] || { echo ""; return 0; }
-  awk -v c="${1}" 'BEGIN { printf "%.0f", (c * 9 / 5) + 32 }'
+  LC_ALL=C awk -v c="${1}" 'BEGIN { printf "%.0f", (c * 9 / 5) + 32 }'
 }
 
 cpu_render_percentage() {

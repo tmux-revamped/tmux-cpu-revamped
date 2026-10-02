@@ -43,7 +43,7 @@ cpu_pct_from_stat() {
   (( dt <= 0 )) && { echo 0; return 0; }
   local used=$(( dt - di ))
   (( used < 0 )) && used=0
-  awk -v u="${used}" -v t="${dt}" 'BEGIN { printf "%.0f", (u / t) * 100 }'
+  LC_ALL=C awk -v u="${used}" -v t="${dt}" 'BEGIN { printf "%.0f", (u / t) * 100 }'
 }
 
 # cpu_pct_from_top TEXT -> integer load percent from a macOS `top` CPU usage line.
@@ -52,7 +52,7 @@ cpu_pct_from_top() {
   idle=$(printf '%s\n' "${1}" | grep -i "CPU usage" | tail -1 \
     | sed -E 's/.*[, ]([0-9.]+)%[[:space:]]*idle.*/\1/')
   [[ "${idle}" =~ ^[0-9.]+$ ]] || { echo 0; return 0; }
-  awk -v i="${idle}" 'BEGIN { printf "%.0f", 100 - i }'
+  LC_ALL=C awk -v i="${idle}" 'BEGIN { printf "%.0f", 100 - i }'
 }
 
 # cpu_temp_from_sensors TEXT -> integer Celsius from `sensors` output.
@@ -75,7 +75,7 @@ cpu_temp_from_istats() {
   [[ -z "${t}" ]] && t=$(printf '%s\n' "${1}" | grep -oE '[0-9]+' | head -1)
   [[ "${t}" =~ ^[0-9]+\.?[0-9]*$ ]] || { echo ""; return 0; }
   local i
-  i=$(awk -v v="${t}" 'BEGIN { printf "%.0f", v }')
+  i=$(LC_ALL=C awk -v v="${t}" 'BEGIN { printf "%.0f", v }')
   (( i > 0 )) && echo "${i}"
 }
 

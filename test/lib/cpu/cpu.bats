@@ -374,3 +374,10 @@ teardown() {
   run _read_scaling_governor
   true
 }
+
+@test "cpu - a comma-decimal locale still formats with a dot" {
+  locale -a 2>/dev/null | grep -qiE '^pt_BR\.utf-?8$' || skip "the pt_BR.UTF-8 locale is not installed"
+  LC_ALL=pt_BR.UTF-8 LC_NUMERIC=pt_BR.UTF-8 run cpu_temp_from_istats 'CPU temp: 45.6°C'
+
+  [[ "${output}" == "46" ]]
+}

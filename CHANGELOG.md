@@ -13,6 +13,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   value only when the value is not empty, and `@cpu_revamped_icons` set to
   `nerd` labels every metric from a Nerd Font set. The default adds no labels.
 
+### Fixed
+
+- A comma-decimal locale such as pt_BR broke the Fahrenheit conversion and
+  the iStats temperature parse, which read `45.6` as 45 or printed a comma.
+  The arithmetic now runs under the C locale.
+
 ## [1.3.0] - 2026-06-29
 
 ### Added
