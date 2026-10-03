@@ -336,7 +336,7 @@ teardown() {
 
   cpu_publish
 
-  [[ "$(paste -sd'|' "${PUBLISH_LOG}")" == "set-option|-gq|@cpu_revamped_out_percentage|77%|;|set-option|-gq|@cpu_revamped_out_count|12" ]]
+  [[ "$(paste -sd'|' "${PUBLISH_LOG}")" == "set-option|-gq|@cpu_revamped_out_percentage|77%%|;|set-option|-gq|@cpu_revamped_out_count|12" ]]
 }
 
 @test "cpu.sh dispatcher - publish skips the sample when throttled while detached" {
