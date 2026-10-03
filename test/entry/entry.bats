@@ -16,7 +16,7 @@ teardown() {
 }
 
 @test "entry - jobs mode turns a placeholder into a dispatcher call" {
-  set_tmux_option "status-right" "[#{cpu_percentage}]"
+  tmux set-option -gq "status-right" "[#{cpu_percentage}]"
 
   bash "${ENTRY}"
 
@@ -24,8 +24,8 @@ teardown() {
 }
 
 @test "entry - options mode turns a placeholder into an option read" {
-  set_tmux_option "@cpu_revamped_render" "options"
-  set_tmux_option "status-right" "[#{cpu_percentage}]"
+  tmux set-option -gq "@cpu_revamped_render" "options"
+  tmux set-option -gq "status-right" "[#{cpu_percentage}]"
 
   bash "${ENTRY}"
 
@@ -33,8 +33,8 @@ teardown() {
 }
 
 @test "entry - options mode starts the ticker" {
-  set_tmux_option "@cpu_revamped_render" "options"
-  set_tmux_option "status-right" "[#{cpu_percentage}]"
+  tmux set-option -gq "@cpu_revamped_render" "options"
+  tmux set-option -gq "status-right" "[#{cpu_percentage}]"
 
   bash "${ENTRY}"
 
@@ -42,7 +42,7 @@ teardown() {
 }
 
 @test "entry - jobs mode starts no ticker" {
-  set_tmux_option "status-right" "[#{cpu_percentage}]"
+  tmux set-option -gq "status-right" "[#{cpu_percentage}]"
 
   bash "${ENTRY}"
 
@@ -50,8 +50,8 @@ teardown() {
 }
 
 @test "entry - only metrics on the status line are published" {
-  set_tmux_option "status-left" "#{cpu_temp}"
-  set_tmux_option "status-right" "#{cpu_fg_color}#{cpu_percentage}"
+  tmux set-option -gq "status-left" "#{cpu_temp}"
+  tmux set-option -gq "status-right" "#{cpu_fg_color}#{cpu_percentage}"
 
   bash "${ENTRY}"
 

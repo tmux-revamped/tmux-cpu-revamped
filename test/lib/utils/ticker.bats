@@ -18,7 +18,11 @@ teardown() {
 }
 
 count_ticks() {
-  grep -c '^tick$' "${TICK_LOG}" 2>/dev/null || true
+  if [[ -f "${TICK_LOG}" ]]; then
+    grep -c '^tick$' "${TICK_LOG}"
+  else
+    printf '0'
+  fi
 }
 
 record_tick() {
