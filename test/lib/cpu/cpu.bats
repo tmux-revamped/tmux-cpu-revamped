@@ -226,7 +226,7 @@ teardown() {
   _PLATFORM_OS_CACHE="Darwin"
   has_command() { [[ "$1" == "osx-cpu-temp" ]]; }
   _read_osx_temp() { echo "CPU: 61.2 °C"; }
-  [[ "$(read_cpu_temp)" == "61.2" ]]
+  [[ "$(read_cpu_temp)" == "61" ]]
 }
 
 @test "cpu.sh - read_cpu_temp falls back to istats on Apple Silicon" {
@@ -406,4 +406,63 @@ teardown() {
   LC_ALL=pt_BR.UTF-8 LC_NUMERIC=pt_BR.UTF-8 run cpu_top_from_ps "${txt}"
 
   [[ "${output}" == "second 12%" ]]
+}
+
+@test "cpu.sh - cpu_temp_from_macmon rounds the CPU average" {
+  run cpu_temp_from_macmon '{"temp":{"cpu_temp_avg":71.98,"gpu_temp_avg":57.1}}'
+
+  [[ "${output}" == "72" ]]
+}
+
+@test "cpu.sh - cpu_temp_from_macmon rounds down below a half" {
+  run cpu_temp_from_macmon '{"temp":{"cpu_temp_avg":64.4}}'
+
+  [[ "${output}" == "64" ]]
+}
+
+@test "cpu.sh - cpu_temp_from_macmon is empty for a zero reading" {
+  run cpu_temp_from_macmon '{"temp":{"cpu_temp_avg":0.0}}'
+
+  [[ -z "${output}" ]]
+}
+
+@test "cpu.sh - cpu_temp_from_macmon is empty without a temperature" {
+  run cpu_temp_from_macmon '{"cpu_power":3.2}'
+
+  [[ -z "${output}" ]]
+}
+
+@test "cpu.sh - read_cpu_temp uses macmon on Apple Silicon" {
+  _PLATFORM_OS_CACHE="Darwin"
+  _PLATFORM_ARCH_CACHE="arm64"
+  has_command() { [[ "${1}" == "macmon" ]]; }
+  _read_macmon() { printf '{"temp":{"cpu_temp_avg":55.6}}'; }
+
+  run read_cpu_temp
+
+  [[ "${output}" == "56" ]]
+}
+
+@test "cpu.sh - read_cpu_temp falls back to osx-cpu-temp on Intel" {
+  _PLATFORM_OS_CACHE="Darwin"
+  _PLATFORM_ARCH_CACHE="x86_64"
+  has_command() { [[ "${1}" == "osx-cpu-temp" || "${1}" == "macmon" ]]; }
+  _read_macmon() { printf 'unexpected'; }
+  _read_osx_temp() { printf '61.8°C'; }
+
+  run read_cpu_temp
+
+  [[ "${output}" == "62" ]]
+}
+
+@test "cpu.sh - cpu_round_celsius treats an Apple Silicon zero as no reading" {
+  run cpu_round_celsius "0.0°C"
+
+  [[ -z "${output}" ]]
+}
+
+@test "cpu.sh - cpu_round_celsius keeps a sub-degree reading" {
+  run cpu_round_celsius "0.6"
+
+  [[ "${output}" == "1" ]]
 }

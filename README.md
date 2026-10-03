@@ -242,18 +242,20 @@ set -g @cpu_revamped_temp_high_fg_color '#[fg=#dc322f]'
 
 | Metric | Linux (x86_64 and arm64) | macOS Intel | macOS Apple Silicon |
 |--------|--------------------------|-------------|---------------------|
-| CPU load | yes, `/proc/stat` delta | yes, `top` | yes, `top` |
-| CPU temperature | yes, typed thermal zone, coretemp, then `sensors` | `osx-cpu-temp` or `istats` | no, see note |
+| CPU load | yes, `/proc/stat` delta | yes, `iostat` | yes, `iostat` |
+| CPU temperature | yes, typed thermal zone, coretemp, k10temp, then `sensors` | `osx-cpu-temp` or `istats` | `macmon` |
 | CPU frequency | yes, `/proc/cpuinfo` or scaling | `sysctl` | per-chip clock table |
 | Load average and count | yes | yes | yes |
 
-CPU temperature on Apple Silicon has no sudoless source. Both `osx-cpu-temp` and
-`istats` return `0.0` there, validated on an Apple M3 Max, which the plugin treats
-as no reading, so the temperature placeholders stay empty. The `istats` fallback
-helps only Intel Macs, where you install it with `gem install iStats`. On an Intel
-Mac you can also install `osx-cpu-temp` with `brew install osx-cpu-temp`. On Linux
-install `lm-sensors` for the `sensors` fallback; typed thermal zones and coretemp
-need no extra package.
+CPU temperature needs one helper per platform, and each is optional:
+
+| Platform | Install | Source |
+|---|---|---|
+| macOS Apple Silicon | `brew install macmon` | `macmon pipe -s 1`, sudoless, the `cpu_temp_avg` field |
+| macOS Intel | `brew install osx-cpu-temp` | the CPU SMC key; `gem install iStats` also works |
+| Linux | none for most machines; `apt install lm-sensors` for the `sensors` fallback | typed thermal zones, coretemp and k10temp under `/sys` |
+
+`osx-cpu-temp` and `istats` read Intel SMC keys and return `0.0` on Apple Silicon, which the plugin treats as no reading. Temperatures are whole degrees. Without a helper the temperature placeholders render empty.
 
 Frequency on Apple Silicon is a documented per-chip maximum clock, not a live
 reading, since there is no sudoless live frequency source. Any metric without a

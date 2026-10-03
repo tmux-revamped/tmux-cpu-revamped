@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- CPU temperature on Apple Silicon, from `macmon`, which reads the chip's
+  sensors without sudo. macOS readings are now whole degrees on Intel too.
 - `@cpu_revamped_render 'options'` replaces the `#()` calls with tmux option
   reads, written by one background process per server every
   `@cpu_revamped_interval` seconds, 5 by default. tmux reruns a `#()` call on every redraw, so a

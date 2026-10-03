@@ -47,6 +47,22 @@ cpu_pct_from_stat() {
 }
 
 # cpu_pct_from_top TEXT -> integer load percent from a macOS `top` CPU usage line.
+cpu_round_celsius() {
+  local pattern='^[^0-9]*([0-9]+)(\.([0-9]))?' whole tenth
+  [[ "${1}" =~ ${pattern} ]] || return 0
+  whole=$((10#${BASH_REMATCH[1]}))
+  tenth="${BASH_REMATCH[3]:-0}"
+  ((whole > 0 || tenth > 0)) || return 0
+  ((tenth >= 5)) && whole=$((whole + 1))
+  printf '%s\n' "${whole}"
+}
+
+cpu_temp_from_macmon() {
+  local pattern='"cpu_temp_avg":([0-9.]+)'
+  [[ "${1}" =~ ${pattern} ]] || return 0
+  cpu_round_celsius "${BASH_REMATCH[1]}"
+}
+
 cpu_pct_from_iostat() {
   local idle
   idle=$(printf '%s\n' "${1}" | LC_ALL=C awk 'NF >= 3 && $3 ~ /^[0-9]+$/ { i = $3 } END { print i }')
@@ -106,6 +122,7 @@ _read_sensors() { sensors 2>/dev/null; }
 _read_top() { top -l2 -n0 2>/dev/null; }
 _read_iostat() { iostat -c 2 -w 1 -n 0 2>/dev/null; }
 _read_osx_temp() { osx-cpu-temp 2>/dev/null; }
+_read_macmon() { macmon pipe -s 1 -i 200 2>/dev/null; }
 _read_istats_cpu() { istats cpu temp 2>/dev/null; }
 _read_brand_string() { sysctl -n machdep.cpu.brand_string 2>/dev/null; }
 _read_sysctl_cpufreq() { sysctl -n hw.cpufrequency 2>/dev/null; }
@@ -207,10 +224,12 @@ read_cpu_temp() {
     has_command sensors && cpu_temp_from_sensors "$(_read_sensors)"
   elif is_macos; then
     local t=""
-    if has_command osx-cpu-temp; then
+    if is_apple_silicon && has_command macmon; then
+      t=$(cpu_temp_from_macmon "$(_read_macmon)")
+    fi
+    if [[ -z "${t}" ]] && has_command osx-cpu-temp; then
       # osx-cpu-temp reads Intel SMC keys and returns 0.0 on Apple Silicon.
-      t=$(_read_osx_temp | grep -oE '[0-9.]+' | head -1)
-      case "${t}" in ""|0|0.0|0.00) t="" ;; esac
+      t=$(cpu_round_celsius "$(_read_osx_temp)")
     fi
     if [[ -z "${t}" ]] && has_command istats; then
       t=$(cpu_temp_from_istats "$(_read_istats_cpu)")
@@ -304,6 +323,8 @@ export -f _cpu_stat_total_idle
 export -f cpu_pct_from_stat
 export -f cpu_pct_from_top
 export -f cpu_pct_from_iostat
+export -f cpu_temp_from_macmon
+export -f cpu_round_celsius
 export -f cpu_temp_from_sensors
 export -f cpu_temp_from_thermal
 export -f cpu_temp_from_istats
@@ -313,6 +334,7 @@ export -f _read_proc_cpu_line
 export -f _read_sensors
 export -f _read_top
 export -f _read_iostat
+export -f _read_macmon
 export -f _read_osx_temp
 export -f _read_istats_cpu
 export -f _read_brand_string
