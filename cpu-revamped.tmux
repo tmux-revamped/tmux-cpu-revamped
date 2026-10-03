@@ -35,7 +35,9 @@ interpolate() {
 used_metrics() {
   local text="${1}" metric used=""
   for metric in "${metrics[@]}"; do
-    [[ "${text}" == *"#{cpu_${metric}}"* ]] && used="${used:+${used} }${metric}"
+    if [[ "${text}" == *"#{cpu_${metric}}"* || "${text}" == *"@cpu_revamped_out_${metric}}"* ]]; then
+      used="${used:+${used} }${metric}"
+    fi
   done
   echo "${used}"
 }

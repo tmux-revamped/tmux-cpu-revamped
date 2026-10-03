@@ -57,3 +57,12 @@ teardown() {
 
   [[ "$(cat "$(_mock_opt_file @cpu_revamped_published)")" == "percentage fg_color temp" ]]
 }
+
+@test "entry - a second run keeps metrics already turned into option reads" {
+  tmux set-option -gq "@cpu_revamped_render" "options"
+  tmux set-option -gq "status-right" "[#{E:@cpu_revamped_out_percentage}]"
+
+  bash "${ENTRY}"
+
+  [[ "$(cat "$(_mock_opt_file @cpu_revamped_published)")" == "percentage" ]]
+}

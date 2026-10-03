@@ -34,6 +34,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- In options mode, running the entry point a second time, as two overlapping
+  config reloads do, found no placeholders left in the status line and
+  published nothing, which froze every value. A metric whose option read is
+  already on the status line now counts as used.
 - A comma-decimal locale such as pt_BR broke the Fahrenheit conversion and
   the iStats temperature parse, which read `45.6` as 45 or printed a comma.
   The arithmetic now runs under the C locale.
