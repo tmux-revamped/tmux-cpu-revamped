@@ -27,6 +27,10 @@ source "${PLUGIN_DIR}/src/lib/tmux/tmux-ops.sh"
 # shellcheck source=/dev/null
 source "${PLUGIN_DIR}/src/lib/utils/cache.sh"
 # shellcheck source=/dev/null
+source "${PLUGIN_DIR}/src/lib/utils/publish.sh"
+# shellcheck source=/dev/null
+source "${PLUGIN_DIR}/src/lib/utils/ticker.sh"
+# shellcheck source=/dev/null
 source "${PLUGIN_DIR}/src/lib/cpu/cpu.sh"
 # shellcheck source=/dev/null
 source "${PLUGIN_DIR}/src/lib/cpu/render.sh"
@@ -141,14 +145,57 @@ cpu_label() {
   fi
 }
 
+cpu_natural_width() {
+  case "${1}" in
+    percentage) printf '4' ;;
+    temp) printf '5' ;;
+    freq) printf '7' ;;
+    load | load5 | load15) printf '5' ;;
+    count) printf '3' ;;
+    *) printf '0' ;;
+  esac
+}
+
+cpu_padded() {
+  publish_pad "${2}" "$(publish_width cpu_revamped "${1}" "$(cpu_natural_width "${1}")")"
+}
+
 cpu_labelled() {
   local metric="${1}" value="${2}" label
   [[ -n "${value}" ]] || return 0
+  value="$(cpu_padded "${metric}" "${value}")"
   label="$(cpu_label "${metric}")"
   if [[ -n "${label}" ]]; then
     printf '%s %s\n' "${label}" "${value}"
   else
     printf '%s\n' "${value}"
+  fi
+}
+
+cpu_output() {
+  local metric="${1}" out
+  out="$(cpu_render_metric "${metric}")"
+  if cpu_is_labelled "${metric}"; then
+    cpu_labelled "${metric}" "${out}"
+  elif [[ -n "${out}" ]]; then
+    printf '%s\n' "${out}"
+  fi
+}
+
+cpu_publish() {
+  local metric
+  cpu_should_sample && cpu_refresh
+  for metric in $(get_tmux_option "@cpu_revamped_published" ""); do
+    publish_add "@cpu_revamped_out_${metric}" "$(cpu_output "${metric}")"
+  done
+  publish_commit
+}
+
+_cpu_reexec() { exec "${PLUGIN_DIR}/src/cpu.sh" daemon; }
+
+cpu_daemon() {
+  if ticker_run cpu_revamped cpu_publish "$$"; then
+    _cpu_reexec
   fi
 }
 
@@ -160,17 +207,12 @@ main() {
     popup)   cpu_popup_open; return 0 ;;
     doctor)  cpu_doctor; return 0 ;;
     bind)    cpu_popup_bind "${PLUGIN_DIR}/src/cpu.sh"; return 0 ;;
+    start)   ticker_start "${PLUGIN_DIR}/src/cpu.sh"; return 0 ;;
+    daemon)  cpu_daemon; return 0 ;;
   esac
 
   cpu_tick
-
-  local out
-  out="$(cpu_render_metric "${cmd}")"
-  if cpu_is_labelled "${cmd}"; then
-    cpu_labelled "${cmd}" "${out}"
-  elif [[ -n "${out}" ]]; then
-    printf '%s\n' "${out}"
-  fi
+  cpu_output "${cmd}"
 }
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then

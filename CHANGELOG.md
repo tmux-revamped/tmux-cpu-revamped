@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `@cpu_revamped_render 'options'` replaces the `#()` calls with tmux option
+  reads, written by one background process per server every
+  `status-interval` seconds. tmux reruns a `#()` call on every redraw, so a
+  shared bar ran each one about once a second and painted values one by one.
+- `@cpu_revamped_fixed_width 'on'` pads each value to its widest form, and
+  `@cpu_revamped_<metric>_width` sets one metric's width, so a value changing
+  length no longer shifts the rest of the status line.
 - Metric labels. `@cpu_revamped_<metric>_label` prints an icon or word before a
   value only when the value is not empty, and `@cpu_revamped_icons` set to
   `nerd` labels every metric from a Nerd Font set. The default adds no labels.

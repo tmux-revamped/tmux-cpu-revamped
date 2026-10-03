@@ -281,3 +281,105 @@ teardown() {
 
   [[ "${output}" == "#[fg=red]" ]]
 }
+
+@test "cpu.sh dispatcher - a width option pads the value on the left" {
+  set_tmux_option "@cpu_revamped_percentage_width" "5"
+
+  run cpu_labelled percentage "42%"
+
+  [[ "${output}" == "  42%" ]]
+}
+
+@test "cpu.sh dispatcher - a value wider than the width is not cut" {
+  set_tmux_option "@cpu_revamped_percentage_width" "2"
+
+  run cpu_labelled percentage "42%"
+
+  [[ "${output}" == "42%" ]]
+}
+
+@test "cpu.sh dispatcher - a non-numeric width adds no padding" {
+  set_tmux_option "@cpu_revamped_percentage_width" "wide"
+
+  run cpu_labelled percentage "42%"
+
+  [[ "${output}" == "42%" ]]
+}
+
+@test "cpu.sh dispatcher - the padding sits between the label and the value" {
+  set_tmux_option "@cpu_revamped_percentage_label" "X"
+  set_tmux_option "@cpu_revamped_percentage_width" "5"
+
+  run cpu_labelled percentage "42%"
+
+  [[ "${output}" == "X   42%" ]]
+}
+
+@test "cpu.sh dispatcher - fixed width pads a percentage to four characters" {
+  set_tmux_option "@cpu_revamped_fixed_width" "on"
+
+  run cpu_labelled percentage "9%"
+
+  [[ "${output}" == "  9%" ]]
+}
+
+@test "cpu.sh dispatcher - natural widths cover every padded metric" {
+  run bash -c 'source "$1"; for m in percentage temp freq load load5 load15 count graph; do printf "%s=%s " "$m" "$(cpu_natural_width "$m")"; done' _ "${BATS_TEST_DIRNAME}/../../../src/cpu.sh"
+
+  [[ "${output}" == "percentage=4 temp=5 freq=7 load=5 load5=5 load15=5 count=3 graph=0 " ]]
+}
+
+@test "cpu.sh dispatcher - publish writes every published metric in one batch" {
+  export PUBLISH_LOG="${TEST_TMPDIR}/publish.log"
+  _publish_tmux() { [[ "${1}" == "list-clients" ]] && return 0; printf '%s\n' "$@" > "${PUBLISH_LOG}"; }
+  set_tmux_option "@cpu_revamped_published" "percentage count"
+
+  cpu_publish
+
+  [[ "$(paste -sd'|' "${PUBLISH_LOG}")" == "set-option|-gq|@cpu_revamped_out_percentage|77%|;|set-option|-gq|@cpu_revamped_out_count|12" ]]
+}
+
+@test "cpu.sh dispatcher - publish skips the sample when throttled while detached" {
+  _publish_tmux() { return 0; }
+  set_tmux_option "@cpu_revamped_throttle_when_detached" "1"
+  _cpu_attached_clients() { echo "0"; }
+  cpu_refresh() { echo "sampled" > "${TEST_TMPDIR}/sampled"; }
+
+  cpu_publish
+
+  [ ! -f "${TEST_TMPDIR}/sampled" ]
+}
+
+@test "cpu.sh dispatcher - the daemon re-executes after the tick limit" {
+  ticker_run() { return 0; }
+  _cpu_reexec() { echo "reexec" > "${TEST_TMPDIR}/reexec"; }
+
+  cpu_daemon
+
+  [[ "$(cat "${TEST_TMPDIR}/reexec")" == "reexec" ]]
+}
+
+@test "cpu.sh dispatcher - the daemon stops when it loses ownership" {
+  ticker_run() { return 1; }
+  _cpu_reexec() { echo "reexec" > "${TEST_TMPDIR}/reexec"; }
+
+  cpu_daemon
+
+  [ ! -f "${TEST_TMPDIR}/reexec" ]
+}
+
+@test "cpu.sh dispatcher - main daemon runs the ticker" {
+  cpu_daemon() { echo "daemon" > "${TEST_TMPDIR}/daemon"; }
+
+  main daemon
+
+  [[ "$(cat "${TEST_TMPDIR}/daemon")" == "daemon" ]]
+}
+
+@test "cpu.sh dispatcher - main start spawns the daemon" {
+  _ticker_spawn() { printf '%s' "${1}" > "${TEST_TMPDIR}/spawn"; }
+
+  main start
+
+  [[ "$(cat "${TEST_TMPDIR}/spawn")" == *"/src/cpu.sh" ]]
+}
