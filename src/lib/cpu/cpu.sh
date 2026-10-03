@@ -47,6 +47,13 @@ cpu_pct_from_stat() {
 }
 
 # cpu_pct_from_top TEXT -> integer load percent from a macOS `top` CPU usage line.
+cpu_pct_from_iostat() {
+  local idle
+  idle=$(printf '%s\n' "${1}" | LC_ALL=C awk 'NF >= 3 && $3 ~ /^[0-9]+$/ { i = $3 } END { print i }')
+  [[ "${idle}" =~ ^[0-9]+$ ]] || { echo 0; return 0; }
+  echo $(( 100 - idle ))
+}
+
 cpu_pct_from_top() {
   local idle
   idle=$(printf '%s\n' "${1}" | grep -i "CPU usage" | tail -1 \
@@ -97,6 +104,7 @@ cpu_freq_from_cpuinfo() {
 _read_proc_cpu_line() { grep -m1 '^cpu ' /proc/stat 2>/dev/null; }
 _read_sensors() { sensors 2>/dev/null; }
 _read_top() { top -l2 -n0 2>/dev/null; }
+_read_iostat() { iostat -c 2 -w 1 -n 0 2>/dev/null; }
 _read_osx_temp() { osx-cpu-temp 2>/dev/null; }
 _read_istats_cpu() { istats cpu temp 2>/dev/null; }
 _read_brand_string() { sysctl -n machdep.cpu.brand_string 2>/dev/null; }
@@ -180,6 +188,8 @@ _sample_proc_cpu() {
 read_cpu_percentage() {
   if is_linux; then
     _sample_proc_cpu
+  elif is_macos && has_command iostat; then
+    cpu_pct_from_iostat "$(_read_iostat)"
   elif is_macos && has_command top; then
     cpu_pct_from_top "$(_read_top)"
   else
@@ -293,6 +303,7 @@ read_load_average15() {
 export -f _cpu_stat_total_idle
 export -f cpu_pct_from_stat
 export -f cpu_pct_from_top
+export -f cpu_pct_from_iostat
 export -f cpu_temp_from_sensors
 export -f cpu_temp_from_thermal
 export -f cpu_temp_from_istats
@@ -301,6 +312,7 @@ export -f cpu_freq_from_cpuinfo
 export -f _read_proc_cpu_line
 export -f _read_sensors
 export -f _read_top
+export -f _read_iostat
 export -f _read_osx_temp
 export -f _read_istats_cpu
 export -f _read_brand_string

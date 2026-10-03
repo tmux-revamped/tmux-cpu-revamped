@@ -383,3 +383,22 @@ teardown() {
 
   [[ "$(cat "${TEST_TMPDIR}/spawn")" == *"/src/cpu.sh" ]]
 }
+
+@test "cpu dispatcher - a detail probe keeps its cache inside the detail interval" {
+  cpu_refresh
+  read_cpu_temp() { echo "probed" > "${TEST_TMPDIR}/probed"; echo "fresh"; }
+
+  cpu_refresh
+
+  [ ! -f "${TEST_TMPDIR}/probed" ]
+}
+
+@test "cpu dispatcher - a detail probe runs again after the detail interval" {
+  cpu_refresh
+  read_cpu_temp() { echo "fresh"; }
+  export MOCK_EPOCH=$(( MOCK_EPOCH + 61 ))
+
+  cpu_refresh
+
+  [[ "$(cache_get temp)" == "fresh" ]]
+}

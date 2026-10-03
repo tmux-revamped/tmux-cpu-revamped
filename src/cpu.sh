@@ -63,19 +63,23 @@ cpu_should_sample() {
 }
 
 # cpu_refresh -> the worker: sample every metric once and cache it.
+cpu_detail_age() {
+  get_tmux_option "@cpu_revamped_detail_interval" "60"
+}
+
 cpu_refresh() {
   local percent
   percent="$(read_cpu_percentage)"
   cache_set percent "${percent}"
   cpu_history_push "${percent}" "$(get_tmux_option "@cpu_revamped_graph_width" "20")"
-  cache_set temp "$(read_cpu_temp)"
-  cache_set freq "$(read_cpu_freq)"
-  cache_set load "$(read_load_average)"
-  cache_set load5 "$(read_load_average5)"
-  cache_set load15 "$(read_load_average15)"
-  cache_set count "$(read_cpu_count)"
-  cache_set top_process "$(read_cpu_top_process)"
-  cache_set governor "$(read_cpu_governor)"
+  cache_set_if_stale temp "$(cpu_detail_age)" read_cpu_temp
+  cache_set_if_stale freq "$(cpu_detail_age)" read_cpu_freq
+  cache_set_if_stale load "$(cpu_detail_age)" read_load_average
+  cache_set_if_stale load5 "$(cpu_detail_age)" read_load_average5
+  cache_set_if_stale load15 "$(cpu_detail_age)" read_load_average15
+  cache_set_if_stale count "$(cpu_detail_age)" read_cpu_count
+  cache_set_if_stale top_process "$(cpu_detail_age)" read_cpu_top_process
+  cache_set_if_stale governor "$(cpu_detail_age)" read_cpu_governor
 }
 
 # cpu_tick -> trigger a guarded background refresh when the sample is stale.
@@ -194,7 +198,7 @@ cpu_publish() {
 _cpu_reexec() { exec "${PLUGIN_DIR}/src/cpu.sh" daemon; }
 
 cpu_daemon() {
-  if ticker_run cpu_revamped cpu_publish "$$"; then
+  if ticker_run cpu_revamped cpu_publish "$$" 5; then
     _cpu_reexec
   fi
 }

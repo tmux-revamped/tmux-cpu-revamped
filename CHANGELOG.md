@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `@cpu_revamped_render 'options'` replaces the `#()` calls with tmux option
   reads, written by one background process per server every
-  `status-interval` seconds. tmux reruns a `#()` call on every redraw, so a
+  `@cpu_revamped_interval` seconds, 5 by default. tmux reruns a `#()` call on every redraw, so a
   shared bar ran each one about once a second and painted values one by one.
 - `@cpu_revamped_fixed_width 'on'` pads each value to its widest form, and
   `@cpu_revamped_<metric>_width` sets one metric's width, so a value changing
@@ -19,6 +19,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Metric labels. `@cpu_revamped_<metric>_label` prints an icon or word before a
   value only when the value is not empty, and `@cpu_revamped_icons` set to
   `nerd` labels every metric from a Nerd Font set. The default adds no labels.
+
+### Changed
+
+- The options-mode background process reads every option it needs in one tmux
+  call per tick, sends its cache writes and published values in a second, and
+  keeps its functions out of the environment of the commands it runs. On macOS
+  the sample now comes from `iostat`, about 0.02 s of CPU, instead of `top -l
+  2`, about 1.2 s. Temperature, frequency, load, core count, top process and
+  governor refresh every `@cpu_revamped_detail_interval` seconds, 60 by
+  default.
 
 ### Fixed
 

@@ -83,9 +83,25 @@ teardown() {
   [[ "$(read_cpu_percentage)" == "33" ]]
 }
 
-@test "cpu.sh - read_cpu_percentage uses top on macOS" {
+@test "cpu.sh - read_cpu_percentage prefers iostat on macOS" {
   _PLATFORM_OS_CACHE="Darwin"
   has_command() { return 0; }
+  _read_iostat() { printf '            cpu    load average\n us sy id   1m   5m   15m\n 10  5 85  2.1  2.0  1.9\n 30 12 58  2.1  2.0  1.9\n'; }
+
+  run read_cpu_percentage
+
+  [[ "${output}" == "42" ]]
+}
+
+@test "cpu.sh - cpu_pct_from_iostat is 0 for unreadable output" {
+  run cpu_pct_from_iostat "no samples"
+
+  [[ "${output}" == "0" ]]
+}
+
+@test "cpu.sh - read_cpu_percentage uses top on macOS without iostat" {
+  _PLATFORM_OS_CACHE="Darwin"
+  has_command() { [[ "${1}" == "top" ]]; }
   _read_top() { echo "CPU usage: 1.0% user, 9.0% sys, 90.0% idle"; }
   [[ "$(read_cpu_percentage)" == "10" ]]
 }
