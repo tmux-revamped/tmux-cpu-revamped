@@ -8,7 +8,7 @@
 
 </div>
 
-**18** placeholders · **2** platforms · **224** tests · **95%+** coverage
+**18** placeholders · **2** platforms · **95%+** coverage
 
 Reading CPU load means sampling over a short interval, slow enough to stutter a status bar that does it inline. This plugin moves the sampling off the render path. The status line reads a value cached in a tmux server user-option and returns instantly, while a detached worker re-samples in the background. No temp files are involved. All state lives in tmux options.
 
