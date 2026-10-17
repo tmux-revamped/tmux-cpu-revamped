@@ -335,6 +335,28 @@ teardown() {
   [[ -z "$(cpu_top_from_ps '%CPU COMMAND')" ]]
 }
 
+@test "cpu.sh - cpu_top_from_ps keeps a command name that contains spaces" {
+  # Arrange
+  local txt=$'%CPU COMMAND\n 5.0 bash\n33.1 /Applications/Google Chrome.app/Contents/MacOS/Google Chrome Helper (Renderer)'
+
+  # Act
+  run cpu_top_from_ps "${txt}"
+
+  # Assert
+  [[ "${output}" == "Google Chrome Helper (Renderer) 33%" ]]
+}
+
+@test "cpu.sh - cpu_top_from_ps keeps a slash inside a bare command name" {
+  # Arrange
+  local txt=$'%CPU COMMAND\n50.0 kworker/0:1'
+
+  # Act
+  run cpu_top_from_ps "${txt}"
+
+  # Assert
+  [[ "${output}" == "kworker/0:1 50%" ]]
+}
+
 @test "cpu.sh - read_cpu_top_process reads the ps seam" {
   _read_ps_cpu() { printf '%s\n' $'%CPU COMMAND\n42.0 node'; }
   [[ "$(read_cpu_top_process)" == "node 42%" ]]

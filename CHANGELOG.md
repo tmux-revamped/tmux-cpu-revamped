@@ -44,6 +44,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The busiest-process reading compared only whole percentages under a
   comma-decimal locale, so 12.7 and 12.3 tied. `ps` and its parser now run
   under the C locale.
+- The busiest-process reading cut a command name at its first space, so
+  `Google Chrome Helper` showed as `Google`, and it stripped `kworker/0:1`
+  down to `0:1`. The full name is kept now, and only a leading directory path
+  is removed.
 
 ## [1.3.0] - 2026-06-29
 

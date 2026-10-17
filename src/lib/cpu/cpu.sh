@@ -286,7 +286,7 @@ _read_scaling_governor() { cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_gove
 # cpu_top_from_ps TEXT -> "<name> <pct>%" for the highest %CPU process, empty when
 # the input has no data rows. Pure: parses the text a seam supplies.
 cpu_top_from_ps() {
-  printf '%s\n' "${1}" | LC_ALL=C awk 'NR > 1 && $1 + 0 > m { m = $1; c = $2 } END { if (c != "") { sub(/.*\//, "", c); printf "%s %d%%", c, m + 0 } }'
+  printf '%s\n' "${1}" | LC_ALL=C awk 'NR > 1 && $1 + 0 > m { m = $1; c = $0; sub(/^[ \t]*[^ \t]+[ \t]+/, "", c); sub(/[ \t]+$/, "", c) } END { if (c != "") { if (c ~ /^\//) sub(/.*\//, "", c); printf "%s %d%%", c, m + 0 } }'
 }
 
 # read_cpu_top_process -> the busiest process by CPU. Slow path, worker only.
