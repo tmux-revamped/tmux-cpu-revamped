@@ -73,6 +73,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   every metric refreshed every `@cpu_revamped_interval` seconds. It now states
   that the load averages, temperature and the other detail metrics refresh
   every `@cpu_revamped_detail_interval` seconds, 60 by default.
+- Setting `@cpu_revamped_popup_key` to `off` leaves the detail popup unbound;
+  before, no value could turn the key off. The default stays `M-c`.
 
 ## [1.3.0] - 2026-06-29
 

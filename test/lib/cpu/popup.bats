@@ -106,6 +106,18 @@ teardown() {
   grep -q "bind-key F2 run-shell /path/to/cpu.sh popup" "${CALLS}"
 }
 
+@test "popup.sh - cpu_popup_bind binds nothing when the key is off" {
+  # Arrange
+  _tmux() { printf '%s\n' "$*" >> "${CALLS}"; }
+  set_tmux_option "@cpu_revamped_popup_key" "off"
+
+  # Act
+  cpu_popup_bind "/path/to/cpu.sh"
+
+  # Assert
+  [ ! -e "${CALLS}" ]
+}
+
 @test "popup.sh - cpu_popup_bind quotes a script path with a space and a quote" {
   # Arrange
   _tmux() { printf '%s\n' "$*" >> "${CALLS}"; }

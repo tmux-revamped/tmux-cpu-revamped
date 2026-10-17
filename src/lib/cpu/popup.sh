@@ -43,6 +43,7 @@ cpu_popup_open() {
 cpu_popup_bind() {
   local key script hash="#"
   key=$(get_tmux_option "@cpu_revamped_popup_key" "M-c")
+  [[ -z "${key}" || "${key}" == "off" ]] && return 0
   script="$(printf '%q' "${1}")"
   _tmux bind-key "${key}" run-shell "${script//"${hash}"/${hash}${hash}} popup"
 }

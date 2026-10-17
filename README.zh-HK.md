@@ -145,7 +145,7 @@ set -g status-right '#{cpu_graph} #{cpu_load_color}#{cpu_icon} #{cpu_percentage}
 | `@cpu_revamped_<metric>_label` | 空 | 值不為空時顯示在某個指標前的文字；`''` 移除 `nerd` 標籤 |
 | `@cpu_revamped_fixed_width` | `off` | `on` 在左邊填充每個值至其最大寬度 |
 | `@cpu_revamped_<metric>_width` | 空 | 某個指標的填充寬度，優先於固定寬度 |
-| `@cpu_revamped_popup_key` | `M-c` | 詳情彈出視窗的 prefix 按鍵 |
+| `@cpu_revamped_popup_key` | `M-c` | 詳情彈出視窗的 prefix 按鍵；`off` 不綁定 |
 | `@cpu_revamped_popup_command` | `btop` | 彈出視窗中執行的指令 |
 | `@cpu_revamped_popup_width`、`@cpu_revamped_popup_height` | `80%`、`80%` | 彈出視窗大小 |
 

@@ -145,7 +145,7 @@ set -g status-right '#{cpu_graph} #{cpu_load_color}#{cpu_icon} #{cpu_percentage}
 | `@cpu_revamped_<metric>_label` | 空 | 値が空でないときに1つの指標の値の前に出す文字列。`''`で`nerd`のラベルを消す |
 | `@cpu_revamped_fixed_width` | `off` | `on`で各値を最大幅まで左側に詰め物をする |
 | `@cpu_revamped_<metric>_width` | 空 | 1つの指標の幅。固定幅より優先 |
-| `@cpu_revamped_popup_key` | `M-c` | 詳細ポップアップのprefixキー |
+| `@cpu_revamped_popup_key` | `M-c` | 詳細ポップアップのprefixキー。`off`で割り当てない |
 | `@cpu_revamped_popup_command` | `btop` | ポップアップで実行するコマンド |
 | `@cpu_revamped_popup_width`、`@cpu_revamped_popup_height` | `80%`、`80%` | ポップアップの大きさ |
 

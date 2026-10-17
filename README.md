@@ -135,7 +135,7 @@ set -g status-right '#{cpu_graph} #{cpu_load_color}#{cpu_icon} #{cpu_percentage}
 | `@cpu_revamped_<metric>_label` | empty | text printed before one metric's value when the value is not empty; `''` removes the `nerd` label |
 | `@cpu_revamped_fixed_width` | `off` | `on` pads each value on the left to its widest form |
 | `@cpu_revamped_<metric>_width` | empty | pad width for one metric, which wins over the fixed width |
-| `@cpu_revamped_popup_key` | `M-c` | prefix key for the detail popup |
+| `@cpu_revamped_popup_key` | `M-c` | prefix key for the detail popup; `off` binds nothing |
 | `@cpu_revamped_popup_command` | `btop` | command run in the popup |
 | `@cpu_revamped_popup_width`, `@cpu_revamped_popup_height` | `80%`, `80%` | popup size |
 
