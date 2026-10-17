@@ -55,9 +55,10 @@ cpu_popup_open() {
 
 # cpu_popup_bind SCRIPT -> bind the configured key to open the popup.
 cpu_popup_bind() {
-  local key
+  local key script hash="#"
   key=$(get_tmux_option "@cpu_revamped_popup_key" "M-c")
-  _tmux bind-key "${key}" run-shell "${1} popup"
+  script="$(printf '%q' "${1}")"
+  _tmux bind-key "${key}" run-shell "${script//"${hash}"/${hash}${hash}} popup"
 }
 
 export -f _tmux

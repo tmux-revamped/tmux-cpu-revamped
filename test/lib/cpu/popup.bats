@@ -105,3 +105,14 @@ teardown() {
   cpu_popup_bind "/path/to/cpu.sh"
   grep -q "bind-key F2 run-shell /path/to/cpu.sh popup" "${CALLS}"
 }
+
+@test "popup.sh - cpu_popup_bind quotes a script path with a space and a quote" {
+  # Arrange
+  _tmux() { printf '%s\n' "$*" >> "${CALLS}"; }
+
+  # Act
+  cpu_popup_bind "/it's a dir/#x/cpu.sh"
+
+  # Assert
+  [[ "$(cat "${CALLS}")" == "bind-key M-c run-shell /it\\'s\\ a\\ dir/##x/cpu.sh popup" ]]
+}

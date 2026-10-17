@@ -8,6 +8,9 @@
 
 PLUGIN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CPU_CMD="${PLUGIN_DIR}/src/cpu.sh"
+HASH="#"
+CPU_CMD_QUOTED="$(printf '%q' "${CPU_CMD}")"
+CPU_CMD_QUOTED="${CPU_CMD_QUOTED//"${HASH}"/${HASH}${HASH}}"
 
 metrics=(
   percentage icon fg_color bg_color temp temp_icon temp_fg_color temp_bg_color
@@ -20,14 +23,21 @@ command_for() {
   if [[ "${render_mode}" == "options" ]]; then
     printf '#{E:@cpu_revamped_out_%s}' "${1}"
   else
-    printf '#(%s %s)' "${CPU_CMD}" "${1}"
+    printf '#(%s %s)' "${CPU_CMD_QUOTED}" "${1}"
   fi
 }
 
 interpolate() {
-  local value="${1}" metric
+  local value="${1}" metric placeholder out rest
   for metric in "${metrics[@]}"; do
-    value="${value//\#\{cpu_${metric}\}/$(command_for "${metric}")}"
+    placeholder="#{cpu_${metric}}"
+    out=""
+    rest="${value}"
+    while [[ "${rest}" == *"${placeholder}"* ]]; do
+      out="${out}${rest%%"${placeholder}"*}$(command_for "${metric}")"
+      rest="${rest#*"${placeholder}"}"
+    done
+    value="${out}${rest}"
   done
   echo "${value}"
 }
