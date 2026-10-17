@@ -1,187 +1,152 @@
 <div align="center">
 
-<h1>tmux-cpu-revamped</h1>
+# tmux-cpu-revamped
 
-**CPU load, temperature, and frequency in your tmux status bar, without ever blocking the render.**
+<strong>CPU load, temperature, and frequency in your tmux status bar, without ever blocking the render.</strong>
 
-[![Tests](https://github.com/tmux-revamped/tmux-cpu-revamped/actions/workflows/tests.yml/badge.svg)](https://github.com/tmux-revamped/tmux-cpu-revamped/actions/workflows/tests.yml) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE) [![Version](https://img.shields.io/badge/version-1.3.0-blue.svg)](CHANGELOG.md)
+English &nbsp;|&nbsp; [日本語](README.ja.md) &nbsp;|&nbsp; [简体中文](README.zh-Hans.md) &nbsp;|&nbsp; [繁體中文（香港）](README.zh-HK.md)
+
+[![Tests](https://github.com/tmux-revamped/tmux-cpu-revamped/actions/workflows/tests.yml/badge.svg)](https://github.com/tmux-revamped/tmux-cpu-revamped/actions/workflows/tests.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Version](https://img.shields.io/badge/version-1.3.0-blue.svg)](CHANGELOG.md)
+
+<p align="center">
+  <a href="#what-it-does">What it does</a> &nbsp;|&nbsp;
+  <a href="#requirements">Requirements</a> &nbsp;|&nbsp;
+  <a href="#installation">Installation</a> &nbsp;|&nbsp;
+  <a href="#usage">Usage</a> &nbsp;|&nbsp;
+  <a href="#configuration">Configuration</a> &nbsp;|&nbsp;
+  <a href="#key-bindings">Key bindings</a> &nbsp;|&nbsp;
+  <a href="#how-it-works">How it works</a>
+</p>
 
 </div>
 
-**18** placeholders · **2** platforms · **95%+** coverage
+**18** placeholders. **2** render modes. **7** temperature sources across Linux and macOS. CI runs the suite on **10** Linux and macOS toolchain combinations.
 
-Reading CPU load means sampling over a short interval, slow enough to stutter a status bar that does it inline. This plugin moves the sampling off the render path. The status line reads a value cached in a tmux server user-option and returns instantly, while a detached worker re-samples in the background. No temp files are involved. All state lives in tmux options.
+---
 
-Built from [tmux-plugin-template](https://github.com/tmux-revamped/tmux-plugin-template).
+## What it does
 
-<table>
-<tr>
-<td><strong>Non-blocking</strong><br>The status renders instantly from a cached tmux user-option while a background worker samples.</td>
-<td><strong>No temp files</strong><br>Every piece of state lives in tmux server options, nothing on disk.</td>
-</tr>
-<tr>
-<td><strong>Cross-platform</strong><br>Linux and macOS, Intel and Apple Silicon.</td>
-<td><strong>Tested</strong><br>95%+ line coverage enforced in CI.</td>
-</tr>
-</table>
+The plugin replaces `#{cpu_*}` placeholders in `status-left` and `status-right` with CPU load, temperature, clock, load averages, core count, a load history, the busiest process and the Linux governor. Every placeholder reads a value cached in a tmux option. Sampling runs in the background, so the status line never waits for it. Nothing is written to disk.
 
-## Placeholders
+It also opens a detail popup running `btop` on `prefix + M-c`.
 
-Add any of these to `status-left` or `status-right`:
+## Requirements
 
-| Placeholder | Output |
-|-------------|--------|
-| `#{cpu_percentage}` | CPU load, for example `42%` |
-| `#{cpu_icon}` | a tier icon for the current load |
-| `#{cpu_fg_color}` | foreground color for the current load tier |
-| `#{cpu_bg_color}` | background color for the current load tier |
-| `#{cpu_temp}` | CPU temperature, for example `54°C` |
-| `#{cpu_temp_icon}` | a tier icon for the current temperature |
-| `#{cpu_temp_fg_color}` | foreground color for the temperature tier |
-| `#{cpu_temp_bg_color}` | background color for the temperature tier |
-| `#{cpu_freq}` | CPU clock, for example `4000MHz` |
-| `#{cpu_load}` | 1-minute load average, for example `1.23` |
-| `#{cpu_count}` | number of logical CPUs |
-| `#{cpu_load5}` | 5-minute load average |
-| `#{cpu_load15}` | 15-minute load average |
-| `#{cpu_graph}` | history sparkline of recent load, for example `▁▂▄▆█` |
-| `#{cpu_top_process}` | the busiest process by CPU, for example `node 42%` |
-| `#{cpu_governor}` | the Linux CPU frequency governor, for example `performance` |
-| `#{cpu_load_color}` | foreground color for load relative to core count |
-| `#{cpu_alert}` | an alert glyph when load or temperature is high, empty otherwise |
+| Tool | Version | Needed for |
+|:-----|:--------|:-----------|
+| tmux | 3.2 or later | `display-popup` for the detail popup |
+| bash | 3.2 or later | every script, including macOS `/bin/bash` |
+| `btop` | any | optional, the default popup command |
+| a temperature helper | any | optional, see the table below |
 
+| Value | Linux, x86_64 and arm64 | macOS Intel | macOS Apple Silicon |
+|:------|:------------------------|:------------|:--------------------|
+| Load | `/proc/stat`, two reads 0.3 s apart | `iostat`, then `top` | `iostat`, then `top` |
+| Temperature | thermal zones, then coretemp, then k10temp, then `sensors` | `osx-cpu-temp`, then `istats` | `macmon` |
+| Clock | `/proc/cpuinfo`, then `scaling_cur_freq` | `sysctl hw.cpufrequency` | a per-chip maximum clock table |
+| Load averages and core count | `/proc/loadavg`, `/proc/cpuinfo` | `sysctl` | `sysctl` |
+| Governor | `scaling_governor` | none | none |
 
-## Install
+| Platform | Temperature helper |
+|:---------|:-------------------|
+| macOS Apple Silicon | `brew install macmon`, which reads the sensors without sudo |
+| macOS Intel | `brew install osx-cpu-temp`, or `gem install iStats` |
+| Linux | none on most machines; `lm-sensors` for the `sensors` fallback |
 
-With [TPM](https://github.com/tmux-plugins/tpm), add to `~/.tmux.conf`:
+A value the host has no source for renders empty. `osx-cpu-temp` and `istats` return `0.0` on Apple Silicon, which the plugin treats as no reading. Run `src/cpu.sh doctor` to see what this host provides.
+
+## Installation
+
+### With TPM
+
+Add the plugin and a placeholder to `~/.tmux.conf`, then press `prefix + I`:
 
 ```tmux
 set -g @plugin 'tmux-revamped/tmux-cpu-revamped'
 set -g status-right '#{cpu_icon} #{cpu_percentage} #{cpu_temp}'
 ```
 
-Then press `prefix + I` to install.
-
-Manual install:
+### Manual
 
 ```bash
 git clone https://github.com/tmux-revamped/tmux-cpu-revamped ~/.tmux/plugins/tmux-cpu-revamped
+```
+
+Then add this line to `~/.tmux.conf`, after the lines that set `status-left` and `status-right`, and reload tmux:
+
+```tmux
 run-shell ~/.tmux/plugins/tmux-cpu-revamped/cpu-revamped.tmux
 ```
 
+## Usage
+
+Put placeholders in `status-left` or `status-right`. The plugin replaces them when it loads. [`examples/status-right.tmux.conf`](examples/status-right.tmux.conf) has a complete example.
+
+```tmux
+set -g status-right '#{cpu_graph} #{cpu_load_color}#{cpu_icon} #{cpu_percentage}#[default] #{cpu_temp} #{cpu_alert}'
+```
+
+| Placeholder | Output |
+|:------------|:-------|
+| `#{cpu_percentage}` | CPU load, for example `42%` |
+| `#{cpu_icon}` | the icon of the current load tier |
+| `#{cpu_fg_color}`, `#{cpu_bg_color}` | the colors of the current load tier |
+| `#{cpu_temp}` | temperature in whole degrees, for example `54°C` |
+| `#{cpu_temp_icon}` | the icon of the current temperature tier |
+| `#{cpu_temp_fg_color}`, `#{cpu_temp_bg_color}` | the colors of the current temperature tier |
+| `#{cpu_freq}` | clock, for example `4000MHz` |
+| `#{cpu_load}`, `#{cpu_load5}`, `#{cpu_load15}` | the 1, 5 and 15 minute load averages, for example `1.23` |
+| `#{cpu_count}` | logical CPUs |
+| `#{cpu_graph}` | recent load readings, for example `▁▂▄▆█` |
+| `#{cpu_top_process}` | the busiest process, for example `node 42%` |
+| `#{cpu_governor}` | the Linux frequency governor, for example `performance` |
+| `#{cpu_load_color}` | the load tier foreground color, judged by the 1 minute load per core |
+| `#{cpu_alert}` | `@cpu_revamped_alert_icon` when load or temperature reaches its high threshold, empty otherwise |
+
 ## Configuration
 
-Every option is read live, so changing one and reloading tmux takes effect at the
-next refresh.
-
 | Option | Default | Meaning |
-|--------|---------|---------|
-| `@cpu_revamped_interval` | `5` | seconds the CPU percentage, its icon, colors and graph stay fresh before a background re-sample |
-| `@cpu_revamped_detail_interval` | `60` | seconds the temperature, clock, 1, 5 and 15 minute load averages, core count, busiest process and governor stay cached before the worker reads them again, so the load averages change at most once a minute by default |
-| `@cpu_revamped_percentage_format` | `%s%%` | printf format for the load value |
-| `@cpu_revamped_medium_thresh` | `30` | load percent at which the tier becomes medium |
-| `@cpu_revamped_high_thresh` | `80` | load percent at which the tier becomes high |
-| `@cpu_revamped_low_icon` | `▰▱▱` | icon for the low tier |
-| `@cpu_revamped_medium_icon` | `▰▰▱` | icon for the medium tier |
-| `@cpu_revamped_high_icon` | `▰▰▰` | icon for the high tier |
-| `@cpu_revamped_low_fg_color` | empty | foreground for the low tier |
-| `@cpu_revamped_medium_fg_color` | empty | foreground for the medium tier |
-| `@cpu_revamped_high_fg_color` | empty | foreground for the high tier |
-| `@cpu_revamped_low_bg_color` | empty | background for the low tier |
-| `@cpu_revamped_medium_bg_color` | empty | background for the medium tier |
-| `@cpu_revamped_high_bg_color` | empty | background for the high tier |
+|:-------|:--------|:--------|
+| `@cpu_revamped_interval` | `5` | seconds the load reading stays fresh |
+| `@cpu_revamped_detail_interval` | `60` | seconds the temperature, clock, load averages, core count, busiest process and governor stay fresh |
+| `@cpu_revamped_render` | empty | `options` turns on options render mode, see [How it works](#how-it-works) |
+| `@cpu_revamped_throttle_when_detached` | `0` | `1` stops sampling while no client is attached |
+| `@cpu_revamped_percentage_format` | `%s%%` | printf format for the load |
+| `@cpu_revamped_medium_thresh`, `@cpu_revamped_high_thresh` | `30`, `80` | load percent where the medium and high tiers start |
+| `@cpu_revamped_low_icon` | `▰▱▱` | icon for the low load tier |
+| `@cpu_revamped_medium_icon` | `▰▰▱` | icon for the medium load tier |
+| `@cpu_revamped_high_icon` | `▰▰▰` | icon for the high load tier |
+| `@cpu_revamped_{low,medium,high}_{fg,bg}_color` | empty | colors per load tier |
 | `@cpu_revamped_temp_unit` | `C` | `C` or `F` |
-| `@cpu_revamped_temp_format` | `%s°C` | printf format for the temperature value |
-| `@cpu_revamped_temp_medium_thresh` | `65` | degrees Celsius for the medium tier |
-| `@cpu_revamped_temp_high_thresh` | `80` | degrees Celsius for the high tier |
+| `@cpu_revamped_temp_format` | `%s°C` | printf format for the temperature; the unit follows `@cpu_revamped_temp_unit` |
+| `@cpu_revamped_temp_medium_thresh`, `@cpu_revamped_temp_high_thresh` | `65`, `80` | degrees Celsius where the medium and high temperature tiers start |
 | `@cpu_revamped_temp_low_icon` | empty | icon for the low temperature tier |
 | `@cpu_revamped_temp_medium_icon` | empty | icon for the medium temperature tier |
 | `@cpu_revamped_temp_high_icon` | empty | icon for the high temperature tier |
-| `@cpu_revamped_temp_low_fg_color` | empty | foreground for the low temperature tier |
-| `@cpu_revamped_temp_medium_fg_color` | empty | foreground for the medium temperature tier |
-| `@cpu_revamped_temp_high_fg_color` | empty | foreground for the high temperature tier |
-| `@cpu_revamped_temp_low_bg_color` | empty | background for the low temperature tier |
-| `@cpu_revamped_temp_medium_bg_color` | empty | background for the medium temperature tier |
-| `@cpu_revamped_temp_high_bg_color` | empty | background for the high temperature tier |
-| `@cpu_revamped_freq_format` | `%sMHz` | format for the CPU clock |
-| `@cpu_revamped_load_format` | `%s` | format for the load average |
-| `@cpu_revamped_graph_width` | `20` | number of samples kept in the history ring buffer |
-| `@cpu_revamped_load_medium_ratio` | `0.7` | per-core load ratio at which `#{cpu_load_color}` becomes medium |
-| `@cpu_revamped_load_high_ratio` | `1.0` | per-core load ratio at which `#{cpu_load_color}` becomes high |
-| `@cpu_revamped_alert_icon` | `!` | glyph shown by `#{cpu_alert}` when load or temperature is high |
-| `@cpu_revamped_popup_key` | `M-c` | `prefix` key that opens the detail popup |
-| `@cpu_revamped_popup_command` | `btop` | command run inside the detail popup |
-| `@cpu_revamped_popup_width` | `80%` | detail popup width |
-| `@cpu_revamped_popup_height` | `80%` | detail popup height |
-| `@cpu_revamped_throttle_when_detached` | `0` | set to `1` to stop resampling when no client is attached |
+| `@cpu_revamped_temp_{low,medium,high}_{fg,bg}_color` | empty | colors per temperature tier |
+| `@cpu_revamped_freq_format` | `%sMHz` | format for the clock |
+| `@cpu_revamped_load_format` | `%s` | format for the load averages |
+| `@cpu_revamped_graph_width` | `20` | readings kept for `#{cpu_graph}` |
+| `@cpu_revamped_load_medium_ratio`, `@cpu_revamped_load_high_ratio` | `0.7`, `1.0` | load per core where `#{cpu_load_color}` turns medium and high |
+| `@cpu_revamped_alert_icon` | `!` | glyph for `#{cpu_alert}` |
+| `@cpu_revamped_icons` | `ascii` | `nerd` labels every metric with a Nerd Font glyph |
+| `@cpu_revamped_<metric>_label` | empty | text printed before one metric's value when the value is not empty; `''` removes the `nerd` label |
+| `@cpu_revamped_fixed_width` | `off` | `on` pads each value on the left to its widest form |
+| `@cpu_revamped_<metric>_width` | empty | pad width for one metric, which wins over the fixed width |
+| `@cpu_revamped_popup_key` | `M-c` | prefix key for the detail popup |
+| `@cpu_revamped_popup_command` | `btop` | command run in the popup |
+| `@cpu_revamped_popup_width`, `@cpu_revamped_popup_height` | `80%`, `80%` | popup size |
 
-### Internal state
+Labels apply to `percentage`, `temp`, `freq`, `load`, `load5`, `load15`, `count`, `graph`, `top_process` and `governor`. A longer value is never cut by a width.
 
-The plugin manages these options itself. Do not set them.
+### Theme colors
 
-| Option | Holds |
-|--------|-------|
-| `@cpu_revamped_published` | space-separated metrics found in `status-left` and `status-right` at load, the ones the background worker publishes in options render mode |
-| `@cpu_revamped_history` | space-separated recent load percentages feeding `#{cpu_graph}`, at most `@cpu_revamped_graph_width` of them |
+The color options are empty by default, so the plugin adds no color until you set one. Each block below colors the low, medium and high tiers green, yellow and red:
 
-## Detail popup
-
-Press `prefix + M-c` to open a detail popup running `btop` (configurable). The popup
-uses tmux `display-popup`, available on tmux 3.2 and newer; on older tmux it shows
-a short message instead. Rebind or repoint it:
-
-```tmux
-set -g @cpu_revamped_popup_key 'C'
-set -g @cpu_revamped_popup_command 'btop'
-```
-
-## Doctor
-
-Run the dispatcher with `doctor` to see why a token may be empty on this host:
-
-```bash
-~/.tmux/plugins/tmux-cpu-revamped/src/cpu.sh doctor
-```
-
-It reports the platform, whether the popup is supported, the temperature source
-that applies here, and which optional tools are installed.
-
-## Labels
-
-Every value placeholder can carry a label, an icon or word printed before the value only when the value is not empty, so each figure on the bar says what it is. Set `@cpu_revamped_<metric>_label` for one metric, or `@cpu_revamped_icons` to `nerd` to label every metric from a Nerd Font set. A metric's own label wins over the set, and setting it to `''` removes the set's label for that metric. The default, `ascii`, adds no labels, so existing bars render unchanged.
-
-Set `@cpu_revamped_fixed_width` to `on` to pad every value on the left to the widest it can get, such as four characters for a percentage, so a value that changes length, like `9%` becoming `42%`, never shifts the rest of a right-aligned status line. `@cpu_revamped_<metric>_width` sets one metric's width and wins over the fixed width. A longer value is never cut. Both are off by default.
-
-### Render mode
-
-By default each placeholder becomes a `#()` call, and tmux runs it on every status redraw, which can be about once a second when several plugins share the bar. Set `@cpu_revamped_render` to `options` and each placeholder becomes a read of a tmux option instead, such as `#{E:@cpu_revamped_out_percentage}`. One background process per server samples the CPU every `@cpu_revamped_interval` seconds, 5 by default, writes every value the status line uses in a single tmux call, and redraws once, so values change together and nothing renders empty while a job runs. The process exits after its current tick when the server stops, and a config reload replaces it.
-
-```tmux
-set -g @cpu_revamped_render 'options'
-set -g @cpu_revamped_fixed_width 'on'
-```
-
-```tmux
-set -g @cpu_revamped_icons 'nerd'
-set -g @cpu_revamped_percentage_label ''
-```
-
-| Metric | `nerd` glyph |
-|--------|--------------|
-| `percentage` | `md-gauge` |
-| `temp` | `md-thermometer` |
-| `freq` | `md-speedometer` |
-| `load, load5, load15` | `md-scale_balance` |
-| `count` | `md-chip` |
-| `graph` | `md-chart_line_variant` |
-| `top_process` | `md-application` |
-| `governor` | `md-tune` |
-
-## Theme color suggestions
-
-The defaults use the 16 ANSI color names, which the active tmux theme remaps, so the plugin matches any theme out of the box; for exact hex matches copy one block below.
-
-### Catppuccin Mocha
+<details>
+<summary>Catppuccin Mocha</summary>
 
 ```tmux
 set -g @cpu_revamped_low_fg_color '#[fg=#a6e3a1]'
@@ -192,7 +157,10 @@ set -g @cpu_revamped_temp_medium_fg_color '#[fg=#f9e2af]'
 set -g @cpu_revamped_temp_high_fg_color '#[fg=#f38ba8]'
 ```
 
-### Dracula
+</details>
+
+<details>
+<summary>Dracula</summary>
 
 ```tmux
 set -g @cpu_revamped_low_fg_color '#[fg=#50fa7b]'
@@ -203,7 +171,10 @@ set -g @cpu_revamped_temp_medium_fg_color '#[fg=#f1fa8c]'
 set -g @cpu_revamped_temp_high_fg_color '#[fg=#ff5555]'
 ```
 
-### Nord
+</details>
+
+<details>
+<summary>Nord</summary>
 
 ```tmux
 set -g @cpu_revamped_low_fg_color '#[fg=#a3be8c]'
@@ -214,7 +185,10 @@ set -g @cpu_revamped_temp_medium_fg_color '#[fg=#ebcb8b]'
 set -g @cpu_revamped_temp_high_fg_color '#[fg=#bf616a]'
 ```
 
-### Gruvbox Dark
+</details>
+
+<details>
+<summary>Gruvbox Dark</summary>
 
 ```tmux
 set -g @cpu_revamped_low_fg_color '#[fg=#b8bb26]'
@@ -225,7 +199,10 @@ set -g @cpu_revamped_temp_medium_fg_color '#[fg=#fabd2f]'
 set -g @cpu_revamped_temp_high_fg_color '#[fg=#fb4934]'
 ```
 
-### Tokyo Night
+</details>
+
+<details>
+<summary>Tokyo Night</summary>
 
 ```tmux
 set -g @cpu_revamped_low_fg_color '#[fg=#9ece6a]'
@@ -236,7 +213,10 @@ set -g @cpu_revamped_temp_medium_fg_color '#[fg=#e0af68]'
 set -g @cpu_revamped_temp_high_fg_color '#[fg=#f7768e]'
 ```
 
-### Solarized Dark
+</details>
+
+<details>
+<summary>Solarized Dark</summary>
 
 ```tmux
 set -g @cpu_revamped_low_fg_color '#[fg=#859900]'
@@ -247,36 +227,51 @@ set -g @cpu_revamped_temp_medium_fg_color '#[fg=#b58900]'
 set -g @cpu_revamped_temp_high_fg_color '#[fg=#dc322f]'
 ```
 
-## Support by platform and architecture
+</details>
 
-| Metric | Linux (x86_64 and arm64) | macOS Intel | macOS Apple Silicon |
-|--------|--------------------------|-------------|---------------------|
-| CPU load | yes, `/proc/stat` delta | yes, `iostat` | yes, `iostat` |
-| CPU temperature | yes, typed thermal zone, coretemp, k10temp, then `sensors` | `osx-cpu-temp` or `istats` | `macmon` |
-| CPU frequency | yes, `/proc/cpuinfo` or scaling | `sysctl` | per-chip clock table |
-| Load average and count | yes | yes | yes |
+### Internal state
 
-CPU temperature needs one helper per platform, and each is optional:
+The plugin writes these options itself. Do not set them.
 
-| Platform | Install | Source |
-|---|---|---|
-| macOS Apple Silicon | `brew install macmon` | `macmon pipe -s 1`, sudoless, the `cpu_temp_avg` field |
-| macOS Intel | `brew install osx-cpu-temp` | the CPU SMC key; `gem install iStats` also works |
-| Linux | none for most machines; `apt install lm-sensors` for the `sensors` fallback | typed thermal zones, coretemp and k10temp under `/sys` |
+| Option | Holds |
+|:-------|:------|
+| `@cpu_revamped_published` | the metrics found in `status-left` and `status-right` at load, which options mode publishes |
+| `@cpu_revamped_out_<metric>` | the published value of each metric in options mode |
+| `@cpu_revamped_ticker_pid` | pid of the options-mode background process |
+| `@cpu_revamped_option_names` | the options the background process reads in one call per tick |
+| `@cpu_revamped_history` | recent load readings for `#{cpu_graph}` |
+| `@cpu_revamped_{percent,temp,freq,load,load5,load15,count,top_process,governor}` | cached readings, each with a `_ts` timestamp, and `_lock` on `percent` |
 
-`osx-cpu-temp` and `istats` read Intel SMC keys and return `0.0` on Apple Silicon, which the plugin treats as no reading. Temperatures are whole degrees. Without a helper the temperature placeholders render empty.
+## Key bindings
 
-Frequency on Apple Silicon is a documented per-chip maximum clock, not a live
-reading, since there is no sudoless live frequency source. Any metric without a
-source on the host renders empty rather than a misleading value.
+| Key | Action | Option |
+|:----|:-------|:-------|
+| `prefix + M-c` | open a popup running `@cpu_revamped_popup_command` | `@cpu_revamped_popup_key` |
+
+On tmux older than 3.2 the key shows a message instead of a popup.
+
+## How it works
+
+In the default jobs mode, each placeholder becomes a `#()` call to [`src/cpu.sh`](src/cpu.sh). The call prints the cached value at once. When the cached load is older than `@cpu_revamped_interval`, it also starts one background refresh, guarded by a lock so parallel calls do not start a second one.
+
+tmux runs every `#()` call on every status redraw. With several plugins on one bar that can be about once a second. Options mode removes those calls:
+
+```tmux
+set -g @cpu_revamped_render 'options'
+set -g @cpu_revamped_fixed_width 'on'
+```
+
+Each placeholder then becomes an option read such as `#{E:@cpu_revamped_out_percentage}`. One background process per server samples the CPU every `@cpu_revamped_interval` seconds and writes every value the status line uses in a single tmux call, followed by one redraw. The process exits when the server stops or a config reload starts its replacement. Switching back to jobs mode releases it.
+
+The busiest process name has every `#` doubled before it is cached, so a process named like a tmux format renders as text.
 
 ## Development
 
-```bash
-make test    # bats suite
-make lint    # shellcheck
-make coverage  # kcov line coverage on Linux
-```
+| Command | What it runs |
+|:--------|:-------------|
+| `make test` | the bats suite under [`test/`](test) |
+| `make lint` | shellcheck on every shell file |
+| `make coverage` | kcov line coverage on Linux, failing below 95% |
 
 ## License
 
@@ -303,26 +298,26 @@ memory, and `family/bin/sweep` is how it is discharged.
 | [`tmux-bluetooth-revamped`](https://github.com/tmux-revamped/tmux-bluetooth-revamped) | Every connected Bluetooth device and its battery in your tmux status bar, without blocking the render |
 | [`tmux-cpu-revamped`](https://github.com/tmux-revamped/tmux-cpu-revamped) | **this plugin**, CPU load, temperature, and frequency in your tmux status bar, without ever blocking the render |
 | [`tmux-disk-revamped`](https://github.com/tmux-revamped/tmux-disk-revamped) | Disk usage for your tmux status bar, without ever blocking the status render |
-| [`tmux-extract-revamped`](https://github.com/tmux-revamped/tmux-extract-revamped) | Fuzzy-grab any URL, path, or word off the screen and paste it, pure shell, no Python |
-| [`tmux-fzf-revamped`](https://github.com/tmux-revamped/tmux-fzf-revamped) | Jump to any session, window, or pane, or kill it, from one fzf popup |
-| [`tmux-git-revamped`](https://github.com/tmux-revamped/tmux-git-revamped) | Git repository status in your tmux status bar, without ever blocking the render |
-| [`tmux-gpu-revamped`](https://github.com/tmux-revamped/tmux-gpu-revamped) | GPU load, temperature, frequency, and memory for your tmux status bar |
-| [`tmux-kube-revamped`](https://github.com/tmux-revamped/tmux-kube-revamped) | Current Kubernetes context and namespace in your tmux status bar, async, kubectl-free, never blocking |
+| [`tmux-extract-revamped`](https://github.com/tmux-revamped/tmux-extract-revamped) | Pick a URL, path, hash or any other token off the screen with fzf and type it at the cursor, in pure shell |
+| [`tmux-fzf-revamped`](https://github.com/tmux-revamped/tmux-fzf-revamped) | Switch to, kill, rename or create tmux sessions, windows and panes from fzf pickers in a popup |
+| [`tmux-git-revamped`](https://github.com/tmux-revamped/tmux-git-revamped) | Show the active pane's git branch, changes and provider counts in the tmux status bar without blocking it |
+| [`tmux-gpu-revamped`](https://github.com/tmux-revamped/tmux-gpu-revamped) | GPU load, temperature, clock, power and memory in the tmux status bar, from NVIDIA, AMD, Intel and Apple GPUs |
+| [`tmux-kube-revamped`](https://github.com/tmux-revamped/tmux-kube-revamped) | Current Kubernetes context and namespace in the tmux status bar, parsed from kubeconfig without kubectl |
 | [`tmux-launcher-revamped`](https://github.com/tmux-revamped/tmux-launcher-revamped) | Launch any TUI app in a popup or a window, scoped to the current pane's directory, with one configurable bindi |
 | [`tmux-logging-revamped`](https://github.com/tmux-revamped/tmux-logging-revamped) | Capture any pane to a file: live logging, full scrollback, or a one-shot screenshot |
 | [`tmux-music-revamped`](https://github.com/tmux-revamped/tmux-music-revamped) | Now playing in your tmux status bar, without ever blocking the status render |
 | [`tmux-network-revamped`](https://github.com/tmux-revamped/tmux-network-revamped) | Network throughput in your tmux status bar, without ever blocking the render |
 | [`tmux-pain-control-revamped`](https://github.com/tmux-revamped/tmux-pain-control-revamped) | Standard pane and window management bindings for tmux, version aware, vim friendly, and fully configurable |
-| [`tmux-persist-revamped`](https://github.com/tmux-revamped/tmux-persist-revamped) | Save, auto-save, and restore your whole tmux environment, one plugin, no status-line tricks |
-| [`tmux-plugin-template`](https://github.com/tmux-revamped/tmux-plugin-template) | A template for building non-blocking tmux status plugins |
-| [`tmux-pomodoro-revamped`](https://github.com/tmux-revamped/tmux-pomodoro-revamped) | A Pomodoro timer in your tmux status bar, with zero temp files: all state lives in tmux options |
-| [`tmux-ram-revamped`](https://github.com/tmux-revamped/tmux-ram-revamped) | RAM usage for your tmux status bar, without ever blocking the status render |
-| [`tmux-reorder-revamped`](https://github.com/tmux-revamped/tmux-reorder-revamped) | Drag a window tab on the status bar with the mouse to move that window |
-| [`tmux-scroll-revamped`](https://github.com/tmux-revamped/tmux-scroll-revamped) | Mouse wheel that does the right thing: scroll the app directly, copy-mode everywhere else. No app names to con |
-| [`tmux-sensible-revamped`](https://github.com/tmux-revamped/tmux-sensible-revamped) | Sensible tmux defaults that normalize behavior across every tmux version, OS, and terminal, without clobbering |
-| [`tmux-tiling-revamped`](https://github.com/tmux-revamped/tmux-tiling-revamped) | BSP tiling window management for tmux. Eight layouts, nineteen operations, zero dependencies |
-| [`tmux-time-revamped`](https://github.com/tmux-revamped/tmux-time-revamped) | Local clock and world clocks in your tmux status bar, without ever blocking the render |
-| [`tmux-weather-revamped`](https://github.com/tmux-revamped/tmux-weather-revamped) | Weather in your tmux status bar, fetched in the background so the render never waits on the network |
+| [`tmux-persist-revamped`](https://github.com/tmux-revamped/tmux-persist-revamped) | Save every tmux session, window and pane, auto-save on a timer, and restore it all after a reboot |
+| [`tmux-plugin-template`](https://github.com/tmux-revamped/tmux-plugin-template) | The starting point for a tmux-revamped plugin: shared library, bats harness, CI and family tooling |
+| [`tmux-pomodoro-revamped`](https://github.com/tmux-revamped/tmux-pomodoro-revamped) | A Pomodoro timer in the tmux status bar that keeps all of its state in tmux options, with no temp files |
+| [`tmux-ram-revamped`](https://github.com/tmux-revamped/tmux-ram-revamped) | RAM, swap and memory pressure in the tmux status bar, sampled in the background so the render never waits |
+| [`tmux-reorder-revamped`](https://github.com/tmux-revamped/tmux-reorder-revamped) | Drag a window tab along the tmux status bar with the mouse to move that window |
+| [`tmux-scroll-revamped`](https://github.com/tmux-revamped/tmux-scroll-revamped) | Send the mouse wheel to apps that scroll themselves and into tmux copy-mode everywhere else |
+| [`tmux-sensible-revamped`](https://github.com/tmux-revamped/tmux-sensible-revamped) | Sensible tmux defaults, gated by tmux version and terminal, that leave the options you set alone |
+| [`tmux-tiling-revamped`](https://github.com/tmux-revamped/tmux-tiling-revamped) | Tiling window management for tmux: eight layouts including BSP dwindle and spiral, with layout undo |
+| [`tmux-time-revamped`](https://github.com/tmux-revamped/tmux-time-revamped) | Local and world clocks for the tmux status bar, colored by time of day, with countdowns and a DST warning |
+| [`tmux-weather-revamped`](https://github.com/tmux-revamped/tmux-weather-revamped) | Weather for the tmux status bar from wttr.in, fetched in the background so the status line never waits |
 
 ### Checking an installation
 
