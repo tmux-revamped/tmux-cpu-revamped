@@ -48,6 +48,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `Google Chrome Helper` showed as `Google`, and it stripped `kworker/0:1`
   down to `0:1`. The full name is kept now, and only a leading directory path
   is removed.
+- A process name containing `#` reached the status line unescaped, so a
+  process named like a tmux format could inject one, including a `#()`
+  command. The busiest-process name now has every `#` doubled before it is
+  cached.
 
 ## [1.3.0] - 2026-06-29
 

@@ -16,6 +16,8 @@ _CPU_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${_CPU_LIB_DIR}/../utils/platform.sh"
 # shellcheck source=/dev/null
 source "${_CPU_LIB_DIR}/../utils/has-command.sh"
+# shellcheck source=/dev/null
+source "${_CPU_LIB_DIR}/../utils/publish.sh"
 
 # Seconds the Linux sampler waits between the two /proc/stat reads.
 CPU_SAMPLE_INTERVAL="${CPU_SAMPLE_INTERVAL:-0.3}"
@@ -291,7 +293,7 @@ cpu_top_from_ps() {
 
 # read_cpu_top_process -> the busiest process by CPU. Slow path, worker only.
 read_cpu_top_process() {
-  cpu_top_from_ps "$(_read_ps_cpu)"
+  publish_escape "$(cpu_top_from_ps "$(_read_ps_cpu)")"
 }
 
 # read_cpu_governor -> the Linux CPU frequency governor, empty elsewhere.

@@ -362,6 +362,17 @@ teardown() {
   [[ "$(read_cpu_top_process)" == "node 42%" ]]
 }
 
+@test "cpu.sh - read_cpu_top_process doubles a hash in the process name" {
+  # Arrange
+  _read_ps_cpu() { printf '%s\n' $'%CPU COMMAND\n42.0 evil#(touch pwned)'; }
+
+  # Act
+  run read_cpu_top_process
+
+  # Assert
+  [[ "${output}" == "evil##(touch pwned) 42%" ]]
+}
+
 @test "cpu.sh - read_cpu_governor reads scaling_governor on Linux" {
   _PLATFORM_OS_CACHE="Linux"
   _read_scaling_governor() { echo "performance"; }
