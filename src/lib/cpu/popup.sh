@@ -25,7 +25,7 @@ cpu_tmux_version() {
 # cpu_version_ge A B -> 0 when version A is at least version B.
 cpu_version_ge() {
   [[ -n "${1}" ]] || return 1
-  awk -v a="${1}" -v b="${2}" 'BEGIN { split(a, x, "."); split(b, y, "."); if (x[1]+0 > y[1]+0 || (x[1]+0 == y[1]+0 && x[2]+0 >= y[2]+0)) exit 0; exit 1 }'
+  LC_ALL=C awk -v a="${1}" -v b="${2}" 'BEGIN { split(a, x, "."); split(b, y, "."); if (x[1]+0 > y[1]+0 || (x[1]+0 == y[1]+0 && x[2]+0 >= y[2]+0)) exit 0; exit 1 }'
 }
 
 # cpu_popup_supported -> 0 when the running tmux supports display-popup (3.2+).

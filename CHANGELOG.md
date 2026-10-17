@@ -65,6 +65,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   even with `macmon` installed and supplying the reading. It now names
   `macmon` when present, asks for it when absent, and lists it among the
   tools.
+- The load color thresholds and the tmux version check ran `awk` under the
+  user locale, so an `awk` that reads numbers by locale could misread `0.7`
+  under a comma-decimal locale. Both now run under the C locale, like the rest
+  of the decimal math.
 
 ## [1.3.0] - 2026-06-29
 

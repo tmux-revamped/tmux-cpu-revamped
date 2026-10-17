@@ -116,3 +116,16 @@ teardown() {
   # Assert
   [[ "$(cat "${CALLS}")" == "bind-key M-c run-shell /it\\'s\\ a\\ dir/##x/cpu.sh popup" ]]
 }
+
+@test "popup.sh - cpu_version_ge compares under the C locale" {
+  # Arrange
+  export AWK_LOCALE_LOG="${TEST_TMPDIR}/awk_locale"
+  awk() { printf '%s' "${LC_ALL:-}" > "${AWK_LOCALE_LOG}"; command awk "$@"; }
+  export LC_ALL=pt_BR.UTF-8 2>/dev/null
+
+  # Act
+  cpu_version_ge "3.4" "3.2"
+
+  # Assert
+  [[ "$(cat "${AWK_LOCALE_LOG}")" == "C" ]]
+}

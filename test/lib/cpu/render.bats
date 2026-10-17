@@ -247,3 +247,16 @@ teardown() {
 @test "render.sh - cpu_render_governor echoes the value" {
   [[ "$(cpu_render_governor "performance")" == "performance" ]]
 }
+
+@test "render.sh - cpu_render_load_color runs its decimal math under the C locale" {
+  # Arrange
+  export AWK_LOCALE_LOG="${TEST_TMPDIR}/awk_locale"
+  awk() { printf '%s' "${LC_ALL:-}" > "${AWK_LOCALE_LOG}"; command awk "$@"; }
+  export LC_ALL=pt_BR.UTF-8 2>/dev/null
+
+  # Act
+  cpu_render_load_color 0.9 1 >/dev/null
+
+  # Assert
+  [[ "$(cat "${AWK_LOCALE_LOG}")" == "C" ]]
+}

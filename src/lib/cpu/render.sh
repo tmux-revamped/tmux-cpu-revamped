@@ -136,7 +136,7 @@ cpu_render_load_color() {
   local med high level
   med=$(get_tmux_option "@cpu_revamped_load_medium_ratio" "0.7")
   high=$(get_tmux_option "@cpu_revamped_load_high_ratio" "1.0")
-  level=$(awk -v l="${load}" -v c="${count}" -v m="${med}" -v h="${high}" 'BEGIN { r = l / c; if (r >= h) print "high"; else if (r >= m) print "medium"; else print "low" }')
+  level=$(LC_ALL=C awk -v l="${load}" -v c="${count}" -v m="${med}" -v h="${high}" 'BEGIN { r = l / c; if (r >= h) print "high"; else if (r >= m) print "medium"; else print "low" }')
   get_tmux_option "@cpu_revamped_${level}_fg_color" ""
 }
 
