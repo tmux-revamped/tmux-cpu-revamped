@@ -29,8 +29,10 @@ cpu_doctor_tool() {
 
 # cpu_doctor_temp -> one line explaining the temperature source on this host.
 cpu_doctor_temp() {
-  if is_apple_silicon; then
-    echo "temperature: unavailable (Apple Silicon has no sudoless sensor)"
+  if is_apple_silicon && has_command macmon; then
+    echo "temperature: macmon (Apple Silicon)"
+  elif is_apple_silicon; then
+    echo "temperature: unavailable on Apple Silicon until macmon is installed"
   elif is_macos; then
     echo "temperature: osx-cpu-temp or istats (Intel Macs)"
   else
@@ -48,6 +50,7 @@ cpu_doctor() {
     echo "popup: needs tmux 3.2+"
   fi
   cpu_doctor_temp
+  cpu_doctor_tool macmon
   cpu_doctor_tool sensors
   cpu_doctor_tool osx-cpu-temp
   cpu_doctor_tool istats

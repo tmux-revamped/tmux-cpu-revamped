@@ -61,6 +61,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   unquoted. The path is now shell-quoted, with any `#` doubled for tmux.
 - The README documented `@cpu_revamped_enable_logging`, but no code path ever
   wrote a log, so setting it did nothing. The option is no longer documented.
+- The `doctor` report said Apple Silicon has no sudoless temperature sensor,
+  even with `macmon` installed and supplying the reading. It now names
+  `macmon` when present, asks for it when absent, and lists it among the
+  tools.
 
 ## [1.3.0] - 2026-06-29
 

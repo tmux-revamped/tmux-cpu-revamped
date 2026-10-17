@@ -68,3 +68,43 @@ teardown() {
   [[ "${output}" == *"popup: needs tmux 3.2+"* ]]
   [[ "${output}" == *"tool sensors: found"* ]]
 }
+
+@test "doctor.sh - cpu_doctor_temp names macmon on Apple Silicon when it is installed" {
+  # Arrange
+  _PLATFORM_OS_CACHE="Darwin"
+  _PLATFORM_ARCH_CACHE="arm64"
+  has_command() { [[ "${1}" == "macmon" ]]; }
+
+  # Act
+  run cpu_doctor_temp
+
+  # Assert
+  [[ "${output}" == "temperature: macmon (Apple Silicon)" ]]
+}
+
+@test "doctor.sh - cpu_doctor_temp asks for macmon on Apple Silicon without it" {
+  # Arrange
+  _PLATFORM_OS_CACHE="Darwin"
+  _PLATFORM_ARCH_CACHE="arm64"
+  has_command() { return 1; }
+
+  # Act
+  run cpu_doctor_temp
+
+  # Assert
+  [[ "${output}" == "temperature: unavailable on Apple Silicon until macmon is installed" ]]
+}
+
+@test "doctor.sh - cpu_doctor lists macmon among the tools" {
+  # Arrange
+  _PLATFORM_OS_CACHE="Darwin"
+  _PLATFORM_ARCH_CACHE="arm64"
+  has_command() { return 1; }
+  cpu_popup_supported() { return 0; }
+
+  # Act
+  run cpu_doctor
+
+  # Assert
+  [[ "${output}" == *"tool macmon: missing"* ]]
+}
