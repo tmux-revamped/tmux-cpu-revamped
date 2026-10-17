@@ -52,6 +52,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   process named like a tmux format could inject one, including a `#()`
   command. The busiest-process name now has every `#` doubled before it is
   cached.
+- Switching `@cpu_revamped_render` from `options` back to jobs and reloading
+  left the background ticker running forever, still publishing options nothing
+  read. The entry point now releases the ticker in jobs mode, and the running
+  ticker exits on its next tick.
 
 ## [1.3.0] - 2026-06-29
 

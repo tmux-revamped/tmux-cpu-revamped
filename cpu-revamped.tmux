@@ -59,6 +59,8 @@ update_option "status-right"
 
 if [[ "${render_mode}" == "options" ]]; then
   "${CPU_CMD}" start 2>/dev/null || true
+else
+  tmux set-option -gqu "@cpu_revamped_ticker_pid"
 fi
 
 # Bind the detail-popup key. The dispatcher routes through the _tmux seam.

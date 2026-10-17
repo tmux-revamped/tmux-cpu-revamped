@@ -66,3 +66,15 @@ teardown() {
 
   [[ "$(cat "$(_mock_opt_file @cpu_revamped_published)")" == "percentage" ]]
 }
+
+@test "entry - jobs mode releases a ticker left from options mode" {
+  # Arrange
+  tmux set-option -gq "@cpu_revamped_ticker_pid" "4242"
+  tmux set-option -gq "status-right" "[#{cpu_percentage}]"
+
+  # Act
+  bash "${ENTRY}"
+
+  # Assert
+  [ ! -f "$(_mock_opt_file @cpu_revamped_ticker_pid)" ]
+}
