@@ -81,7 +81,7 @@ teardown() {
 
 @test "entry - jobs mode quotes a plugin path with a space and a quote" {
   # Arrange
-  local dir="${TEST_TMPDIR}/it's dir"
+  local dir="${TEST_TMPDIR}/it's a&b dir"
   mkdir -p "${dir}"
   cp -f "${ENTRY}" "${dir}/cpu-revamped.tmux"
   tmux set-option -gq "status-right" "[#{cpu_percentage}]"
@@ -90,5 +90,5 @@ teardown() {
   bash "${dir}/cpu-revamped.tmux"
 
   # Assert
-  [[ "$(cat "$(_mock_opt_file status-right)")" == "[#($(cd "${TEST_TMPDIR}" && pwd)/it\\'s\\ dir/src/cpu.sh percentage)]" ]]
+  [[ "$(cat "$(_mock_opt_file status-right)")" == "[#($(cd "${TEST_TMPDIR}" && pwd)/it\\'s\\ a\\&b\\ dir/src/cpu.sh percentage)]" ]]
 }
