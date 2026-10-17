@@ -115,6 +115,15 @@ next refresh.
 | `@cpu_revamped_popup_height` | `80%` | detail popup height |
 | `@cpu_revamped_throttle_when_detached` | `0` | set to `1` to stop resampling when no client is attached |
 
+### Internal state
+
+The plugin manages these options itself. Do not set them.
+
+| Option | Holds |
+|--------|-------|
+| `@cpu_revamped_published` | space-separated metrics found in `status-left` and `status-right` at load, the ones the background worker publishes in options render mode |
+| `@cpu_revamped_history` | space-separated recent load percentages feeding `#{cpu_graph}`, at most `@cpu_revamped_graph_width` of them |
+
 ## Detail popup
 
 Press `prefix + M-c` to open a detail popup running `btop` (configurable). The popup
