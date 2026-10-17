@@ -113,7 +113,6 @@ next refresh.
 | `@cpu_revamped_popup_width` | `80%` | detail popup width |
 | `@cpu_revamped_popup_height` | `80%` | detail popup height |
 | `@cpu_revamped_throttle_when_detached` | `0` | set to `1` to stop resampling when no client is attached |
-| `@cpu_revamped_enable_logging` | `0` | set to `1` to log diagnostics under `~/.tmux/cpu-revamped-logs` |
 
 ## Detail popup
 
