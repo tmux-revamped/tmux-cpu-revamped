@@ -76,7 +76,8 @@ next refresh.
 
 | Option | Default | Meaning |
 |--------|---------|---------|
-| `@cpu_revamped_interval` | `5` | seconds a sample stays fresh before a background re-sample |
+| `@cpu_revamped_interval` | `5` | seconds the CPU percentage, its icon, colors and graph stay fresh before a background re-sample |
+| `@cpu_revamped_detail_interval` | `60` | seconds the temperature, clock, 1, 5 and 15 minute load averages, core count, busiest process and governor stay cached before the worker reads them again, so the load averages change at most once a minute by default |
 | `@cpu_revamped_percentage_format` | `%s%%` | printf format for the load value |
 | `@cpu_revamped_medium_thresh` | `30` | load percent at which the tier becomes medium |
 | `@cpu_revamped_high_thresh` | `80` | load percent at which the tier becomes high |

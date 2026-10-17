@@ -69,6 +69,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   user locale, so an `awk` that reads numbers by locale could misread `0.7`
   under a comma-decimal locale. Both now run under the C locale, like the rest
   of the decimal math.
+- The README did not document `@cpu_revamped_detail_interval`, and implied
+  every metric refreshed every `@cpu_revamped_interval` seconds. It now states
+  that the load averages, temperature and the other detail metrics refresh
+  every `@cpu_revamped_detail_interval` seconds, 60 by default.
 
 ## [1.3.0] - 2026-06-29
 
