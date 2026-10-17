@@ -1,11 +1,4 @@
 #!/usr/bin/env bash
-#
-# doctor.sh: capability report explaining which sources this host exposes.
-#
-# Answers the top support question: why a token is empty here. It names the
-# platform, whether the popup is available, which temperature path applies, and
-# which optional tools are installed. Every probe goes through an existing seam,
-# so the report is testable without touching real hardware.
 
 [[ -n "${_CPU_REVAMPED_DOCTOR_LOADED:-}" ]] && return 0
 _CPU_REVAMPED_DOCTOR_LOADED=1
@@ -18,7 +11,6 @@ source "${_CPU_DOCTOR_DIR}/../utils/has-command.sh"
 # shellcheck source=/dev/null
 source "${_CPU_DOCTOR_DIR}/popup.sh"
 
-# cpu_doctor_tool NAME -> one line stating whether NAME is on PATH.
 cpu_doctor_tool() {
   if has_command "${1}"; then
     echo "tool ${1}: found"
@@ -27,7 +19,6 @@ cpu_doctor_tool() {
   fi
 }
 
-# cpu_doctor_temp -> one line explaining the temperature source on this host.
 cpu_doctor_temp() {
   if is_apple_silicon && has_command macmon; then
     echo "temperature: macmon (Apple Silicon)"
@@ -40,7 +31,6 @@ cpu_doctor_temp() {
   fi
 }
 
-# cpu_doctor -> print the full capability report.
 cpu_doctor() {
   echo "tmux-cpu-revamped doctor"
   echo "platform: $(platform_os) $(platform_arch)"

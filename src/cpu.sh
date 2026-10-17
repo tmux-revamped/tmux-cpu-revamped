@@ -1,17 +1,4 @@
 #!/usr/bin/env bash
-#
-# cpu.sh: command dispatcher for tmux-cpu-revamped.
-#
-# Each status placeholder runs this with a subcommand. The dispatcher triggers a
-# guarded background refresh, then maps the cached raw value to the requested
-# output. The slow sampling happens only inside the worker, off the render path.
-#
-# Usage:
-#   cpu.sh percentage | icon | fg_color | bg_color
-#   cpu.sh temp | temp_icon | temp_fg_color | temp_bg_color
-#   cpu.sh freq | load | load5 | load15 | count
-#   cpu.sh graph | top_process | governor | load_color | alert
-#   cpu.sh refresh | popup | doctor | bind
 
 PLUGIN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
@@ -41,18 +28,14 @@ source "${PLUGIN_DIR}/src/lib/cpu/popup.sh"
 # shellcheck source=/dev/null
 source "${PLUGIN_DIR}/src/lib/cpu/doctor.sh"
 
-# cpu_max_age -> how many seconds a sample stays fresh.
 cpu_max_age() {
   get_tmux_option "@cpu_revamped_interval" "5"
 }
 
-# _cpu_attached_clients -> count of clients attached to this tmux server.
 _cpu_attached_clients() {
   tmux list-clients 2>/dev/null | wc -l | tr -d ' '
 }
 
-# cpu_should_sample -> 0 when a refresh is allowed. When the throttle option is
-# on and no client is attached, the worker stays idle to save battery.
 cpu_should_sample() {
   [[ "$(get_tmux_option "@cpu_revamped_throttle_when_detached" "0")" == "1" ]] || return 0
   local clients
@@ -62,7 +45,6 @@ cpu_should_sample() {
   return 1
 }
 
-# cpu_refresh -> the worker: sample every metric once and cache it.
 cpu_detail_age() {
   get_tmux_option "@cpu_revamped_detail_interval" "60"
 }
@@ -82,7 +64,6 @@ cpu_refresh() {
   cache_set_if_stale governor "$(cpu_detail_age)" read_cpu_governor
 }
 
-# cpu_tick -> trigger a guarded background refresh when the sample is stale.
 cpu_tick() {
   cpu_should_sample || return 0
   cache_refresh_if_stale percent "$(cpu_max_age)" cpu_refresh

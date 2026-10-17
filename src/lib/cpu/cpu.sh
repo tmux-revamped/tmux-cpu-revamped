@@ -1,12 +1,4 @@
 #!/usr/bin/env bash
-#
-# cpu.sh: CPU load and temperature acquisition.
-#
-# The parser functions are pure: they take command output as text and return a
-# number, which is what makes them testable without real hardware. The reader
-# functions perform the actual sampling and run only inside the background worker,
-# so their cost never lands on the status render. The thin _read_* seams exist so
-# tests can stub the host probes deterministically.
 
 [[ -n "${_CPU_REVAMPED_CPU_LOADED:-}" ]] && return 0
 _CPU_REVAMPED_CPU_LOADED=1
@@ -19,10 +11,8 @@ source "${_CPU_LIB_DIR}/../utils/has-command.sh"
 # shellcheck source=/dev/null
 source "${_CPU_LIB_DIR}/../utils/publish.sh"
 
-# Seconds the Linux sampler waits between the two /proc/stat reads.
 CPU_SAMPLE_INTERVAL="${CPU_SAMPLE_INTERVAL:-0.3}"
 
-# _cpu_stat_total_idle LINE -> "<total> <idle>" parsed from a /proc/stat cpu line.
 _cpu_stat_total_idle() {
   local line="${1}"
   local -a f
@@ -36,7 +26,6 @@ _cpu_stat_total_idle() {
   echo "${total} ${idle}"
 }
 
-# cpu_pct_from_stat LINE1 LINE2 -> integer load percent across the interval.
 cpu_pct_from_stat() {
   local t1 i1 t2 i2
   read -r t1 i1 <<< "$(_cpu_stat_total_idle "${1}")"
@@ -48,7 +37,6 @@ cpu_pct_from_stat() {
   LC_ALL=C awk -v u="${used}" -v t="${dt}" 'BEGIN { printf "%.0f", (u / t) * 100 }'
 }
 
-# cpu_pct_from_top TEXT -> integer load percent from a macOS `top` CPU usage line.
 cpu_round_celsius() {
   local pattern='^[^0-9]*([0-9]+)(\.([0-9]))?' whole tenth
   [[ "${1}" =~ ${pattern} ]] || return 0
@@ -80,20 +68,17 @@ cpu_pct_from_top() {
   LC_ALL=C awk -v i="${idle}" 'BEGIN { printf "%.0f", 100 - i }'
 }
 
-# cpu_temp_from_sensors TEXT -> integer Celsius from `sensors` output.
 cpu_temp_from_sensors() {
   printf '%s\n' "${1}" \
     | grep -m1 -E 'Tctl|Tdie|Package id 0|Core 0|CPU Temperature|k10temp' \
     | grep -oE '\+[0-9]+' | head -1 | tr -d '+'
 }
 
-# cpu_temp_from_thermal MILLIDEG -> integer Celsius from a thermal-zone reading.
 cpu_temp_from_thermal() {
   [[ "${1}" =~ ^[0-9]+$ ]] || { echo ""; return 0; }
   echo $(( ${1} / 1000 ))
 }
 
-# cpu_temp_from_istats TEXT -> integer Celsius from `istats cpu temp`, empty at 0.
 cpu_temp_from_istats() {
   local t
   t=$(printf '%s\n' "${1}" | grep -oE '[0-9]+\.[0-9]+' | head -1)
@@ -104,7 +89,6 @@ cpu_temp_from_istats() {
   (( i > 0 )) && echo "${i}"
 }
 
-# cpu_freq_apple BRAND_STRING -> max CPU clock MHz for an Apple Silicon chip.
 cpu_freq_apple() {
   local gen
   gen=$(printf '%s' "${1}" | grep -oE 'M[1-5]' | grep -oE '[1-5]' | head -1)
@@ -113,12 +97,10 @@ cpu_freq_apple() {
   echo "${t[gen]}"
 }
 
-# cpu_freq_from_cpuinfo TEXT -> integer MHz from a "cpu MHz" /proc/cpuinfo line.
 cpu_freq_from_cpuinfo() {
   printf '%s\n' "${1}" | awk '{print int($NF)}'
 }
 
-# Host-probe seams. Tests override these to inject fixtures.
 _read_proc_cpu_line() { grep -m1 '^cpu ' /proc/stat 2>/dev/null; }
 _read_sensors() { sensors 2>/dev/null; }
 _read_top() { top -l2 -n0 2>/dev/null; }
@@ -135,8 +117,6 @@ _read_proc_loadavg() { cat /proc/loadavg 2>/dev/null; }
 _read_sysctl_ncpu() { sysctl -n hw.ncpu 2>/dev/null; }
 _read_proc_nproc() { grep -c '^processor' /proc/cpuinfo 2>/dev/null; }
 
-# _read_cpu_thermal [GLOB] -> highest cpu-zone temperature in Celsius, empty when
-# none. The GLOB argument exists so tests can point it at a fixture directory.
 # shellcheck disable=SC2120
 _read_cpu_thermal() {
   local glob="${1:-/sys/class/thermal/thermal_zone*/temp}"
@@ -152,7 +132,6 @@ _read_cpu_thermal() {
   echo "${max}"
 }
 
-# _read_coretemp [GLOB] -> highest coretemp hwmon temperature in Celsius.
 # shellcheck disable=SC2120
 _read_coretemp() {
   local glob="${1:-/sys/devices/platform/coretemp.0/hwmon/hwmon*/temp*_input}"
@@ -166,9 +145,6 @@ _read_coretemp() {
   echo "${max}"
 }
 
-# _read_k10temp [GLOB] -> AMD Ryzen k10temp CPU temperature in Celsius read
-# directly from hwmon, preferring the Tctl/Tdie die sensor over board sensors.
-# Closes the Ryzen gap left when lm-sensors is not installed.
 # shellcheck disable=SC2120
 _read_k10temp() {
   local glob="${1:-/sys/class/hwmon/hwmon*}"
@@ -194,7 +170,6 @@ _read_k10temp() {
   echo "${best}"
 }
 
-# _sample_proc_cpu -> load percent from two spaced /proc/stat reads.
 _sample_proc_cpu() {
   local l1 l2
   l1=$(_read_proc_cpu_line)
@@ -203,7 +178,6 @@ _sample_proc_cpu() {
   cpu_pct_from_stat "${l1}" "${l2}"
 }
 
-# read_cpu_percentage -> sample CPU load. Slow path, worker only.
 read_cpu_percentage() {
   if is_linux; then
     _sample_proc_cpu
@@ -216,7 +190,6 @@ read_cpu_percentage() {
   fi
 }
 
-# read_cpu_temp -> CPU temperature in Celsius, empty when no sensor is available.
 read_cpu_temp() {
   if is_linux; then
     local t
@@ -230,7 +203,6 @@ read_cpu_temp() {
       t=$(cpu_temp_from_macmon "$(_read_macmon)")
     fi
     if [[ -z "${t}" ]] && has_command osx-cpu-temp; then
-      # osx-cpu-temp reads Intel SMC keys and returns 0.0 on Apple Silicon.
       t=$(cpu_round_celsius "$(_read_osx_temp)")
     fi
     if [[ -z "${t}" ]] && has_command istats; then
@@ -240,7 +212,6 @@ read_cpu_temp() {
   fi
 }
 
-# read_cpu_freq -> CPU clock in MHz, empty or 0 when unavailable.
 read_cpu_freq() {
   if is_apple_silicon; then
     cpu_freq_apple "$(_read_brand_string)"
@@ -261,7 +232,6 @@ read_cpu_freq() {
   fi
 }
 
-# read_load_average -> the 1-minute load average.
 read_load_average() {
   if is_macos; then
     _read_sysctl_loadavg | awk '{print $2}'
@@ -270,7 +240,6 @@ read_load_average() {
   fi
 }
 
-# read_cpu_count -> number of logical CPUs.
 read_cpu_count() {
   if is_macos; then
     _read_sysctl_ncpu
@@ -281,29 +250,23 @@ read_cpu_count() {
   fi
 }
 
-# Host-probe seams for the added metrics.
 _read_ps_cpu() { LC_ALL=C ps -Ao pcpu,comm 2>/dev/null; }
 _read_scaling_governor() { cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor 2>/dev/null; }
 
-# cpu_top_from_ps TEXT -> "<name> <pct>%" for the highest %CPU process, empty when
-# the input has no data rows. Pure: parses the text a seam supplies.
 cpu_top_from_ps() {
   printf '%s\n' "${1}" | LC_ALL=C awk 'NR > 1 && $1 + 0 > m { m = $1; c = $0; sub(/^[ \t]*[^ \t]+[ \t]+/, "", c); sub(/[ \t]+$/, "", c) } END { if (c != "") { if (c ~ /^\//) sub(/.*\//, "", c); printf "%s %d%%", c, m + 0 } }'
 }
 
-# read_cpu_top_process -> the busiest process by CPU. Slow path, worker only.
 read_cpu_top_process() {
   publish_escape "$(cpu_top_from_ps "$(_read_ps_cpu)")"
 }
 
-# read_cpu_governor -> the Linux CPU frequency governor, empty elsewhere.
 read_cpu_governor() {
   if is_linux; then
     _read_scaling_governor
   fi
 }
 
-# read_load_average5 -> the 5-minute load average.
 read_load_average5() {
   if is_macos; then
     _read_sysctl_loadavg | awk '{print $3}'
@@ -312,7 +275,6 @@ read_load_average5() {
   fi
 }
 
-# read_load_average15 -> the 15-minute load average.
 read_load_average15() {
   if is_macos; then
     _read_sysctl_loadavg | awk '{print $4}'

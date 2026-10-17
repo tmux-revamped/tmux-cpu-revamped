@@ -1,10 +1,4 @@
 #!/usr/bin/env bash
-#
-# cpu-revamped.tmux: TPM entry point.
-#
-# Replaces the #{cpu_*} placeholders in status-left and status-right with calls
-# to the dispatcher. The dispatcher reads cached values, so the status render
-# never blocks on a CPU sample. It also binds the detail-popup key.
 
 PLUGIN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CPU_CMD="${PLUGIN_DIR}/src/cpu.sh"
@@ -73,5 +67,4 @@ else
   tmux set-option -gqu "@cpu_revamped_ticker_pid"
 fi
 
-# Bind the detail-popup key. The dispatcher routes through the _tmux seam.
 "${CPU_CMD}" bind 2>/dev/null || true

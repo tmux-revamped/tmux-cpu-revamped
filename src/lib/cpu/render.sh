@@ -1,9 +1,4 @@
 #!/usr/bin/env bash
-#
-# render.sh: map cached CPU values to icons, colors, and formatted text.
-#
-# These are pure mappers. They read configuration from tmux options and the raw
-# value passed in, then return a string. No sampling happens here.
 
 [[ -n "${_CPU_REVAMPED_RENDER_LOADED:-}" ]] && return 0
 _CPU_REVAMPED_RENDER_LOADED=1
@@ -12,7 +7,6 @@ _CPU_RENDER_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=/dev/null
 source "${_CPU_RENDER_DIR}/../tmux/tmux-ops.sh"
 
-# _cpu_level VALUE MEDIUM HIGH -> low|medium|high by integer thresholds.
 _cpu_level() {
   local v="${1%%.*}" med="${2}" high="${3}"
   [[ "${v}" =~ ^-?[0-9]+$ ]] || v=0
@@ -25,7 +19,6 @@ _cpu_level() {
   fi
 }
 
-# _cpu_c_to_f CELSIUS -> integer Fahrenheit.
 _cpu_c_to_f() {
   [[ "${1}" =~ ^-?[0-9]+$ ]] || { echo ""; return 0; }
   LC_ALL=C awk -v c="${1}" 'BEGIN { printf "%.0f", (c * 9 / 5) + 32 }'
@@ -65,7 +58,6 @@ cpu_render_bg() {
   get_tmux_option "@cpu_revamped_${level}_bg_color" ""
 }
 
-# cpu_render_temp RAW_CELSIUS -> formatted temperature honoring the unit option.
 cpu_render_temp() {
   local raw="${1}"
   [[ -z "${raw}" ]] && { echo ""; return 0; }
@@ -126,9 +118,6 @@ cpu_render_count() {
   echo "${1}"
 }
 
-# cpu_render_load_color LOAD COUNT -> the tier fg color for the load relative to
-# core count, so the same absolute load reads green on a big box and red on a
-# small one. Reuses the load tier color options.
 cpu_render_load_color() {
   local load="${1}" count="${2}"
   [[ -z "${load}" ]] && { echo ""; return 0; }
@@ -140,8 +129,6 @@ cpu_render_load_color() {
   get_tmux_option "@cpu_revamped_${level}_fg_color" ""
 }
 
-# cpu_render_alert PERCENT TEMP -> an alert glyph when load or temperature is at
-# or above its high threshold, empty otherwise.
 cpu_render_alert() {
   local pct="${1}" temp="${2}"
   local hi thi
@@ -161,12 +148,10 @@ cpu_render_alert() {
   fi
 }
 
-# cpu_render_top_process VALUE -> the cached top-process string verbatim.
 cpu_render_top_process() {
   echo "${1}"
 }
 
-# cpu_render_governor VALUE -> the cached governor string verbatim.
 cpu_render_governor() {
   echo "${1}"
 }
