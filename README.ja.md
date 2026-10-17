@@ -4,19 +4,19 @@
 
 <strong>CPUの負荷、温度、周波数をtmuxのステータスバーに表示し、描画を一切止めません。</strong>
 
-[English](README.md) &nbsp;|&nbsp; 日本語 &nbsp;|&nbsp; [简体中文](README.zh-Hans.md) &nbsp;|&nbsp; [繁體中文（香港）](README.zh-HK.md)
+[English](README.md) | 日本語 | [简体中文](README.zh-Hans.md) | [繁體中文（香港）](README.zh-HK.md)
 
 [![Tests](https://github.com/tmux-revamped/tmux-cpu-revamped/actions/workflows/tests.yml/badge.svg)](https://github.com/tmux-revamped/tmux-cpu-revamped/actions/workflows/tests.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Version](https://img.shields.io/badge/version-1.3.0-blue.svg)](CHANGELOG.md)
 
 <p align="center">
-  <a href="#what-it-does">機能</a> &nbsp;|&nbsp;
-  <a href="#requirements">動作要件</a> &nbsp;|&nbsp;
-  <a href="#installation">インストール</a> &nbsp;|&nbsp;
-  <a href="#usage">使い方</a> &nbsp;|&nbsp;
-  <a href="#configuration">設定</a> &nbsp;|&nbsp;
-  <a href="#key-bindings">キーバインド</a> &nbsp;|&nbsp;
+  <a href="#what-it-does">機能</a> |
+  <a href="#requirements">動作要件</a> |
+  <a href="#installation">インストール</a> |
+  <a href="#usage">使い方</a> |
+  <a href="#configuration">設定</a> |
+  <a href="#key-bindings">キーバインド</a> |
   <a href="#how-it-works">仕組み</a>
 </p>
 
