@@ -43,7 +43,7 @@ Guidance for anyone, human or agent, changing tmux-cpu-revamped. What it is and 
 
 ## Gaps against FAMILY.md
 
-As of 2026-11-15:
+As of 2026-11-16:
 
 - Every script is bash, under `#!/usr/bin/env bash`, not POSIX `sh`, so it is untested under `dash`, `zsh` and BusyBox `sh`.
 - The code lives in [`src/`](src) and [`src/lib/`](src/lib); there is no `bin/cpu-revamped`, `lib/state.sh` or `lib/core.sh`.
@@ -59,3 +59,4 @@ As of 2026-11-15:
 - No `.editorconfig`, `.yamllint.yml` or shfmt; the Makefile has `help`, `test`, `test-unit`, `coverage`, `lint` and `clean`, not the family's targets.
 - `#{cpu_governor}` works on Linux only, from `scaling_governor`.
 - No `@cpu_revamped_notify` for throttling yet.
+- No test presses its keys through a real client attached from a second tmux.
