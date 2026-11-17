@@ -34,6 +34,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- `prefix + M-c` did nothing where `btop` is not installed: the popup opened and
+  closed at once. The popup now runs `htop`, then `top`, when `btop` is missing,
+  and a `@cpu_revamped_popup_command` that is not installed is named in a
+  message.
 - In options mode, running the entry point a second time, as two overlapping
   config reloads do, found no placeholders left in the status line and
   published nothing, which froze every value. A metric whose option read is

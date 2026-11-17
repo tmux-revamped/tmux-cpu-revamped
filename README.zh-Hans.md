@@ -34,7 +34,7 @@
 
 插件把 `status-left` 和 `status-right` 中的 `#{cpu_*}` 占位符替换为 CPU 负载、温度、频率、平均负载、核心数、负载历史、最繁忙的进程和 Linux 调频策略。每个占位符读取缓存在 tmux 选项中的值。采样在后台进行，状态栏从不等待。不向磁盘写入任何内容。
 
-它还会通过 `prefix + M-c` 打开运行 `btop` 的详情弹窗。
+它还会通过 `prefix + M-c` 打开详情弹窗，运行 `btop`；没有安装 `btop` 时运行 `htop`，两者都没有时运行 `top`。
 
 <a id="requirements"></a>
 
@@ -44,7 +44,7 @@
 |:-----|:--------|:-----------|
 | tmux | 3.2 或更高 | 详情弹窗所用的 `display-popup` |
 | bash | 3.2 或更高 | 所有脚本，包括 macOS 的 `/bin/bash` |
-| `btop` | 任意 | 可选，弹窗的默认命令 |
+| `btop` 或 `htop` | 任意 | 可选；弹窗运行最先找到的一个，两者都没有时运行 `top` |
 | 温度辅助工具 | 任意 | 可选，见下表 |
 
 | 数值 | Linux，x86_64 和 arm64 | macOS Intel | macOS Apple Silicon |
@@ -148,7 +148,7 @@ set -g status-right '#{cpu_graph} #{cpu_load_color}#{cpu_icon} #{cpu_percentage}
 | `@cpu_revamped_fixed_width` | `off` | `on` 在左侧填充每个值到其最大宽度 |
 | `@cpu_revamped_<metric>_width` | 空 | 某个指标的填充宽度，优先于固定宽度 |
 | `@cpu_revamped_popup_key` | `M-c` | 详情弹窗的 prefix 按键；`off` 不绑定 |
-| `@cpu_revamped_popup_command` | `btop` | 弹窗中运行的命令 |
+| `@cpu_revamped_popup_command` | `btop`，其次 `htop`，再次 `top` | 弹窗中运行的命令；未安装的命令会在一条消息中指出 |
 | `@cpu_revamped_popup_width`、`@cpu_revamped_popup_height` | `80%`、`80%` | 弹窗大小 |
 
 标签适用于 `percentage`、`temp`、`freq`、`load`、`load5`、`load15`、`count`、`graph`、`top_process` 和 `governor`。宽度设置不会截断较长的值。

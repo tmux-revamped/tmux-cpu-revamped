@@ -48,15 +48,21 @@ teardown() {
 }
 
 @test "doctor.sh - cpu_doctor reports a supported popup" {
+  # Arrange
   _PLATFORM_OS_CACHE="Linux"
   _PLATFORM_ARCH_CACHE="x86_64"
   has_command() { return 1; }
   cpu_popup_supported() { return 0; }
+
+  # Act
   run cpu_doctor
+
+  # Assert
   [[ "${output}" == *"tmux-cpu-revamped doctor"* ]]
   [[ "${output}" == *"platform: Linux x86_64"* ]]
   [[ "${output}" == *"popup: supported"* ]]
   [[ "${output}" == *"tool btop: missing"* ]]
+  [[ "${output}" == *"tool htop: missing"* ]]
 }
 
 @test "doctor.sh - cpu_doctor reports an unsupported popup" {

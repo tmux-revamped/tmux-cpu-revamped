@@ -59,8 +59,52 @@ teardown() {
   ! cpu_popup_supported
 }
 
-@test "popup.sh - cpu_popup_command defaults to btop" {
-  [[ "$(cpu_popup_command)" == "btop" ]]
+@test "popup.sh - cpu_popup_command defaults to btop when it is installed" {
+  # Arrange
+  has_command() { [[ "${1}" == "btop" ]]; }
+
+  # Act
+  run cpu_popup_command
+
+  # Assert
+  [[ "${output}" == "btop" ]]
+}
+
+@test "popup.sh - cpu_popup_command falls back to htop without btop" {
+  # Arrange
+  has_command() { [[ "${1}" == "htop" ]]; }
+
+  # Act
+  run cpu_popup_command
+
+  # Assert
+  [[ "${output}" == "htop" ]]
+}
+
+@test "popup.sh - cpu_popup_command falls back to top without btop and htop" {
+  # Arrange
+  has_command() { return 1; }
+
+  # Act
+  run cpu_popup_command
+
+  # Assert
+  [[ "${output}" == "top" ]]
+}
+
+@test "popup.sh - cpu_popup_open names a command that is not installed instead of opening an empty popup" {
+  # Arrange
+  _tmux() { printf '%s\n' "$*" >> "${CALLS}"; }
+  cpu_popup_supported() { return 0; }
+  has_command() { return 1; }
+  set_tmux_option "@cpu_revamped_popup_command" "glances#1 --tree"
+
+  # Act
+  cpu_popup_open
+
+  # Assert
+  grep -q "display-message cpu-revamped: glances##1 is not installed" "${CALLS}"
+  ! grep -q "display-popup" "${CALLS}"
 }
 
 @test "popup.sh - cpu_popup_command honors the option" {
@@ -69,19 +113,31 @@ teardown() {
 }
 
 @test "popup.sh - cpu_popup_open uses display-popup when supported" {
+  # Arrange
   _tmux() { printf '%s\n' "$*" >> "${CALLS}"; }
   cpu_popup_supported() { return 0; }
+  has_command() { [[ "${1}" == "btop" ]]; }
+
+  # Act
   cpu_popup_open
+
+  # Assert
   grep -q "display-popup -E -w 80% -h 80% btop" "${CALLS}"
 }
 
 @test "popup.sh - cpu_popup_open honors width, height, and command options" {
+  # Arrange
   _tmux() { printf '%s\n' "$*" >> "${CALLS}"; }
   cpu_popup_supported() { return 0; }
+  has_command() { [[ "${1}" == "htop" ]]; }
   set_tmux_option "@cpu_revamped_popup_command" "htop"
   set_tmux_option "@cpu_revamped_popup_width" "60%"
   set_tmux_option "@cpu_revamped_popup_height" "50%"
+
+  # Act
   cpu_popup_open
+
+  # Assert
   grep -q "display-popup -E -w 60% -h 50% htop" "${CALLS}"
 }
 

@@ -45,6 +45,7 @@ cpu_doctor() {
   cpu_doctor_tool osx-cpu-temp
   cpu_doctor_tool istats
   cpu_doctor_tool btop
+  cpu_doctor_tool htop
 }
 
 export -f cpu_doctor_tool

@@ -32,7 +32,7 @@ English | [日本語](README.ja.md) | [简体中文](README.zh-Hans.md) | [繁�
 
 The plugin replaces `#{cpu_*}` placeholders in `status-left` and `status-right` with CPU load, temperature, clock, load averages, core count, a load history, the busiest process and the Linux governor. Every placeholder reads a value cached in a tmux option. Sampling runs in the background, so the status line never waits for it. Nothing is written to disk.
 
-It also opens a detail popup running `btop` on `prefix + M-c`.
+It also opens a detail popup on `prefix + M-c`, running `btop`, or `htop` or `top` when `btop` is not installed.
 
 ## Requirements
 
@@ -40,7 +40,7 @@ It also opens a detail popup running `btop` on `prefix + M-c`.
 |:-----|:--------|:-----------|
 | tmux | 3.2 or later | `display-popup` for the detail popup |
 | bash | 3.2 or later | every script, including macOS `/bin/bash` |
-| `btop` | any | optional, the default popup command |
+| `btop` or `htop` | any | optional; the popup runs the first one installed, and `top` without both |
 | a temperature helper | any | optional, see the table below |
 
 | Value | Linux, x86_64 and arm64 | macOS Intel | macOS Apple Silicon |
@@ -138,7 +138,7 @@ set -g status-right '#{cpu_graph} #{cpu_load_color}#{cpu_icon} #{cpu_percentage}
 | `@cpu_revamped_fixed_width` | `off` | `on` pads each value on the left to its widest form |
 | `@cpu_revamped_<metric>_width` | empty | pad width for one metric, which wins over the fixed width |
 | `@cpu_revamped_popup_key` | `M-c` | prefix key for the detail popup; `off` binds nothing |
-| `@cpu_revamped_popup_command` | `btop` | command run in the popup |
+| `@cpu_revamped_popup_command` | `btop`, then `htop`, then `top` | command run in the popup; one that is not installed is named in a message |
 | `@cpu_revamped_popup_width`, `@cpu_revamped_popup_height` | `80%`, `80%` | popup size |
 
 Labels apply to `percentage`, `temp`, `freq`, `load`, `load5`, `load15`, `count`, `graph`, `top_process` and `governor`. A longer value is never cut by a width.

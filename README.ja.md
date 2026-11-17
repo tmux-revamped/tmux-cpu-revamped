@@ -34,7 +34,7 @@
 
 `status-left`と`status-right`の`#{cpu_*}`プレースホルダーを、CPUの負荷、温度、クロック、ロードアベレージ、コア数、負荷の履歴、最も負荷の高いプロセス、Linuxのガバナーに置き換えます。どのプレースホルダーもtmuxのオプションにキャッシュされた値を読みます。計測はバックグラウンドで行うため、ステータスラインが待たされることはありません。ディスクには何も書き込みません。
 
-`prefix + M-c`で`btop`を動かす詳細ポップアップも開きます。
+`prefix + M-c`で詳細ポップアップも開きます。`btop`を動かし、`btop`がなければ`htop`、どちらもなければ`top`を動かします。
 
 <a id="requirements"></a>
 
@@ -44,7 +44,7 @@
 |:-----|:--------|:-----------|
 | tmux | 3.2以降 | 詳細ポップアップの`display-popup` |
 | bash | 3.2以降 | macOSの`/bin/bash`を含むすべてのスクリプト |
-| `btop` | 任意 | 任意。ポップアップの既定のコマンド |
+| `btop`または`htop` | 任意 | 任意。ポップアップは最初に見つかった方を動かし、どちらもなければ`top`を動かします |
 | 温度の補助ツール | 任意 | 任意。下の表を参照 |
 
 | 値 | Linux、x86_64とarm64 | macOS Intel | macOS Apple Silicon |
@@ -148,7 +148,7 @@ set -g status-right '#{cpu_graph} #{cpu_load_color}#{cpu_icon} #{cpu_percentage}
 | `@cpu_revamped_fixed_width` | `off` | `on`で各値を最大幅まで左側に詰め物をする |
 | `@cpu_revamped_<metric>_width` | 空 | 1つの指標の幅。固定幅より優先 |
 | `@cpu_revamped_popup_key` | `M-c` | 詳細ポップアップのprefixキー。`off`で割り当てない |
-| `@cpu_revamped_popup_command` | `btop` | ポップアップで実行するコマンド |
+| `@cpu_revamped_popup_command` | `btop`、次に`htop`、次に`top` | ポップアップで実行するコマンド。インストールされていないコマンドはメッセージで名前を示します |
 | `@cpu_revamped_popup_width`、`@cpu_revamped_popup_height` | `80%`、`80%` | ポップアップの大きさ |
 
 ラベルは`percentage`、`temp`、`freq`、`load`、`load5`、`load15`、`count`、`graph`、`top_process`、`governor`に付きます。幅の設定で長い値が切り詰められることはありません。
