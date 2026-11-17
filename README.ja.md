@@ -291,6 +291,8 @@ set -g @cpu_revamped_fixed_width 'on'
 | `make lint` | すべてのシェルファイルへのshellcheck |
 | `make coverage` | Linuxでのkcovによる行カバレッジ。95%未満で失敗します |
 
+macOS では、`brew bundle` を実行すると、これらのターゲットが使うツールがすべて [`Brewfile`](Brewfile) からインストールされます。
+
 <a id="license"></a>
 
 ## ライセンス

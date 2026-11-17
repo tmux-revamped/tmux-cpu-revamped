@@ -275,6 +275,8 @@ The busiest process name has every `#` doubled before it is cached, so a process
 | `make lint` | shellcheck on every shell file |
 | `make coverage` | kcov line coverage on Linux, failing below 95% |
 
+On macOS, `brew bundle` installs every tool these targets call, from the [`Brewfile`](Brewfile).
+
 ## License
 
 [MIT](LICENSE), copyright Gustavo Franco.
