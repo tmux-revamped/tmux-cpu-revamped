@@ -1,5 +1,25 @@
 # Changelog
 
+# [3.0.0](https://github.com/tmux-revamped/tmux-cpu-revamped/compare/v2.0.0...v3.0.0) (2026-11-19)
+
+
+* feat!: rewrite the plugin in POSIX sh ([d8be22d](https://github.com/tmux-revamped/tmux-cpu-revamped/commit/d8be22ddbe689c9c06701bd690d1fde523844078))
+
+
+### BREAKING CHANGES
+
+* the script moved from src/cpu.sh to
+bin/cpu-revamped. A placeholder is printed by "cpu-revamped status
+NAME", where it was "cpu.sh NAME", and "cpu.sh bind" and "cpu.sh
+start" are now "cpu-revamped apply". bash is no longer required. A
+tmux option set to nothing now means its default, where a label, the
+alert icon or a format set to nothing used to stay empty. The
+environment knobs CPU_SAMPLE_INTERVAL, TICKER_MAX_TICKS, CACHE_SYNC
+and PLUGIN_LOG_* are gone. On the command line a load ratio that is
+not a number, a temperature unit other than C or F, or a throttle
+other than 0 or 1 is refused; the same value in a tmux option still
+works and doctor names it.
+
 # [2.0.0](https://github.com/tmux-revamped/tmux-cpu-revamped/compare/v1.3.0...v2.0.0) (2026-11-18)
 
 
