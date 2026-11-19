@@ -1,0 +1,348 @@
+.TH CPU-REVAMPED 1 "2026-11-19" "cpu-revamped" "User Commands"
+.SH NAME
+cpu-revamped \- load, temperature and clock in the tmux status bar
+.SH SYNOPSIS
+.B cpu-revamped
+.RI [ options ]
+.I command
+.RI [ name ]
+.SH DESCRIPTION
+.B cpu-revamped
+shows how busy the CPU is in the tmux status line, with its temperature, its
+clock, the three load averages, the core count, a graph of the recent
+samples, the busiest process and the governor. macOS is read from iostat,
+top, sysctl and, for the temperature, macmon, osx-cpu-temp or istats. Linux
+is read from /proc and sysfs, with sensors as the last resort for the
+temperature.
+.PP
+The entry point
+.B cpu-revamped.tmux
+runs
+.B apply
+once when tmux loads the plugin, which binds the popup key in one tmux call
+and replaces the placeholders #{cpu_percentage}, #{cpu_icon},
+#{cpu_fg_color}, #{cpu_bg_color}, #{cpu_temp}, #{cpu_temp_icon},
+#{cpu_temp_fg_color}, #{cpu_temp_bg_color}, #{cpu_freq}, #{cpu_load},
+#{cpu_load5}, #{cpu_load15}, #{cpu_count}, #{cpu_graph}, #{cpu_top_process},
+#{cpu_governor}, #{cpu_load_color} and #{cpu_alert} in status-left and
+status-right.
+.PP
+A status call prints the stored sample at once. When the sample is older
+than the interval it starts one in the background, so the status line never
+waits. The temperature, the clock, the load averages, the busiest process
+and the governor are read only for a placeholder the status line uses, at
+the detail interval. Run with no command on a terminal, the tool offers a
+menu.
+.PP
+On Linux the load is the busy share of two reads of /proc/stat taken 0.3
+seconds apart, with iowait counted as idle. On macOS it is a hundred less
+the idle share of iostat, or of top when iostat is missing. The clock on
+Apple Silicon is looked up from the chip generation. #{cpu_governor} is
+empty on macOS, which has none.
+.SH COMMANDS
+.TP
+.B apply
+Bind the popup key and replace the status placeholders now. In the options render mode it also starts the daemon.
+.TP
+.B list
+Print every tmux command apply would send, one per line, and change nothing.
+.TP
+.B status
+Print one placeholder from the stored sample: percentage, icon, fg_color, bg_color, temp, temp_icon, temp_fg_color, temp_bg_color, freq, load, load5, load15, count, graph, top_process, governor, load_color or alert. The status line runs it, and it starts a sample in the background when the stored one is older than the interval.
+.TP
+.B refresh
+Sample the CPU now, read the details the status line uses, store the sample and say how much of the CPU is busy.
+.TP
+.B card
+Read everything now and print one row per figure: the load, the temperature, the clock, the load averages, the cores, the governor, the busiest process and the history.
+.TP
+.B popup
+Open a CPU monitor in a tmux popup: the popup command, else btop, else htop, else top. The popup key runs it. A command that is not installed is named in a message, and a tmux older than 3.2 says so.
+.TP
+.B daemon
+Sample the CPU and publish every placeholder the status line uses, once per interval, until another daemon takes over or the tmux server ends. apply starts it in the options render mode.
+.TP
+.B doctor
+Print one row per dependency: tmux, the popup, each tool or file a figure comes from, the monitor the popup opens, the key it found bound, gum and the core tools.
+A settings row names any setting whose value it does not know.
+Exits 1 only when a required tool is missing.
+.TP
+.B version
+Print the version, then the tmux version.
+.TP
+.B help
+Print the help page.
+.SH OPTIONS
+.TP
+.B \-\-json
+.B list
+prints one JSON object.
+.TP
+.BI \-\-theme " name"
+Colours of the terminal interface:
+.BR kodougu ,
+.BR catppuccin\-mocha ,
+.BR catppuccin\-latte ,
+.BR dracula ,
+.BR nord ,
+.BR gruvbox ,
+.B tokyo\-night
+or
+.BR mono .
+The default is
+.BR kodougu .
+.TP
+.BI \-\- setting " value"
+Any tmux option below, named with dashes, such as
+.B \-\-interval
+or
+.BR \-\-top\-process\-label .
+It also takes the form
+.IR \-\-setting = value ,
+and outranks the environment and the tmux option. Given to
+.BR apply ,
+it rides on the popup key and on every status call.
+.SH ENVIRONMENT
+.TP
+.BI CPU_REVAMPED_ SETTING
+Any tmux option below in capitals, such as
+.BR CPU_REVAMPED_INTERVAL .
+It outranks the tmux option.
+.TP
+.B CPU_REVAMPED_THEME
+The theme when
+.B \-\-theme
+is not given.
+.TP
+.B CPU_REVAMPED_ACCENT
+A colour such as #CBA6F7 that replaces the accent of the theme.
+.TP
+.B KODOUGU_THEME
+The theme of every kodougu and tmux-revamped tool, when neither
+.B \-\-theme
+nor
+.B CPU_REVAMPED_THEME
+is set.
+.TP
+.B KODOUGU_ACCENT
+The accent of every kodougu and tmux-revamped tool, when
+.B CPU_REVAMPED_ACCENT
+is not set.
+.TP
+.B NO_COLOR
+Turns colour off in every theme.
+.SH TMUX OPTIONS
+An empty tmux option means its default. A key set to off binds nothing.
+.TP
+.B @cpu_revamped_popup_key
+The prefix key that opens the monitor popup. off binds nothing. The default is M\-c, left alone when someone else holds it.
+.TP
+.B @cpu_revamped_popup_width
+The width of the popup, as tmux reads it. The default is 80%.
+.TP
+.B @cpu_revamped_popup_height
+The height of the popup. The default is 80%.
+.TP
+.B @cpu_revamped_popup_command
+The command the popup runs, with its arguments. The default is btop, else htop, else top.
+.TP
+.B @cpu_revamped_interval
+Seconds a sample stays fresh before the CPU is read again. The default is 5.
+.TP
+.B @cpu_revamped_detail_interval
+Seconds the temperature, the clock, the load averages, the busiest process and the governor stay fresh. The default is 60.
+.TP
+.B @cpu_revamped_throttle_when_detached
+1 stops sampling while no client is attached; the status line keeps the last sample. The default is 0.
+.TP
+.B @cpu_revamped_render
+jobs turns each placeholder into a call the status line runs. options turns it into a read of a tmux option that the daemon fills, so a status refresh starts no process. Any other value means jobs. The default is jobs.
+.TP
+.B @cpu_revamped_medium_thresh
+Load percent at which the tier becomes medium. The default is 30.
+.TP
+.B @cpu_revamped_high_thresh
+Load percent at which the tier becomes high, and at which #{cpu_alert} prints. The default is 80.
+.TP
+.B @cpu_revamped_temp_medium_thresh
+Degrees Celsius at which the temperature tier becomes medium. The default is 65.
+.TP
+.B @cpu_revamped_temp_high_thresh
+Degrees Celsius at which the temperature tier becomes high, and at which #{cpu_alert} prints. The default is 80.
+.TP
+.B @cpu_revamped_load_medium_ratio
+Load average per core at which #{cpu_load_color} becomes medium. The default is 0.7.
+.TP
+.B @cpu_revamped_load_high_ratio
+Load average per core at which #{cpu_load_color} becomes high. The default is 1.0.
+.TP
+.B @cpu_revamped_low_icon
+What #{cpu_icon} prints in the low tier. The default is one bar of three.
+.TP
+.B @cpu_revamped_medium_icon
+What #{cpu_icon} prints in the medium tier. The default is two bars of three.
+.TP
+.B @cpu_revamped_high_icon
+What #{cpu_icon} prints in the high tier. The default is three bars.
+.TP
+.B @cpu_revamped_low_fg_color
+The style #{cpu_fg_color} and #{cpu_load_color} print in the low tier. The default is none.
+.TP
+.B @cpu_revamped_medium_fg_color
+The style they print in the medium tier. The default is none.
+.TP
+.B @cpu_revamped_high_fg_color
+The style they print in the high tier. The default is none.
+.TP
+.B @cpu_revamped_low_bg_color
+The style #{cpu_bg_color} prints in the low tier. The default is none.
+.TP
+.B @cpu_revamped_medium_bg_color
+The style #{cpu_bg_color} prints in the medium tier. The default is none.
+.TP
+.B @cpu_revamped_high_bg_color
+The style #{cpu_bg_color} prints in the high tier. The default is none.
+.TP
+.B @cpu_revamped_temp_low_icon
+What #{cpu_temp_icon} prints in the low temperature tier. The default is none.
+.TP
+.B @cpu_revamped_temp_medium_icon
+What #{cpu_temp_icon} prints in the medium temperature tier. The default is none.
+.TP
+.B @cpu_revamped_temp_high_icon
+What #{cpu_temp_icon} prints in the high temperature tier. The default is none.
+.TP
+.B @cpu_revamped_temp_low_fg_color
+The style #{cpu_temp_fg_color} prints in the low temperature tier. The default is none.
+.TP
+.B @cpu_revamped_temp_medium_fg_color
+The style #{cpu_temp_fg_color} prints in the medium temperature tier. The default is none.
+.TP
+.B @cpu_revamped_temp_high_fg_color
+The style #{cpu_temp_fg_color} prints in the high temperature tier. The default is none.
+.TP
+.B @cpu_revamped_temp_low_bg_color
+The style #{cpu_temp_bg_color} prints in the low temperature tier. The default is none.
+.TP
+.B @cpu_revamped_temp_medium_bg_color
+The style #{cpu_temp_bg_color} prints in the medium temperature tier. The default is none.
+.TP
+.B @cpu_revamped_temp_high_bg_color
+The style #{cpu_temp_bg_color} prints in the high temperature tier. The default is none.
+.TP
+.B @cpu_revamped_alert_icon
+What #{cpu_alert} prints while the load or the temperature is at its high threshold. The default is !.
+.TP
+.B @cpu_revamped_temp_unit
+C prints the temperature in Celsius, F in Fahrenheit. The default is C.
+.TP
+.B @cpu_revamped_percentage_format
+printf format of #{cpu_percentage}. The default is %s%%.
+.TP
+.B @cpu_revamped_temp_format
+printf format of #{cpu_temp}. The default is %s, the degree sign and the unit.
+.TP
+.B @cpu_revamped_freq_format
+printf format of #{cpu_freq}, in megahertz. The default is %sMHz.
+.TP
+.B @cpu_revamped_load_format
+printf format of #{cpu_load}, #{cpu_load5} and #{cpu_load15}. The default is %s.
+.TP
+.B @cpu_revamped_icons
+ascii labels nothing. nerd puts a Nerd Font glyph before every metric that takes a label. The default is ascii.
+.TP
+.B @cpu_revamped_fixed_width
+on pads each figure on the left to its natural width, so a change from 9% to 42% does not shift the status line. The default is off.
+.TP
+.B @cpu_revamped_percentage_label
+Text printed before the load percent, only when the value is not empty. The default is none.
+.TP
+.B @cpu_revamped_temp_label
+Text printed before the temperature, only when the value is not empty. The default is none.
+.TP
+.B @cpu_revamped_freq_label
+Text printed before the clock, only when the value is not empty. The default is none.
+.TP
+.B @cpu_revamped_load_label
+Text printed before the one minute load average, only when the value is not empty. The default is none.
+.TP
+.B @cpu_revamped_load5_label
+Text printed before the five minute load average, only when the value is not empty. The default is none.
+.TP
+.B @cpu_revamped_load15_label
+Text printed before the fifteen minute load average, only when the value is not empty. The default is none.
+.TP
+.B @cpu_revamped_count_label
+Text printed before the core count, only when the value is not empty. The default is none.
+.TP
+.B @cpu_revamped_graph_label
+Text printed before the graph, only when the value is not empty. The default is none.
+.TP
+.B @cpu_revamped_top_process_label
+Text printed before the busiest process, only when the value is not empty. The default is none.
+.TP
+.B @cpu_revamped_governor_label
+Text printed before the governor, only when the value is not empty. The default is none.
+.TP
+.B @cpu_revamped_percentage_width
+Characters the load percent is padded to on the left. A longer value is never cut. The default is none.
+.TP
+.B @cpu_revamped_temp_width
+Characters the temperature is padded to on the left. A longer value is never cut. The default is none.
+.TP
+.B @cpu_revamped_freq_width
+Characters the clock is padded to on the left. A longer value is never cut. The default is none.
+.TP
+.B @cpu_revamped_load_width
+Characters the one minute load average is padded to on the left. A longer value is never cut. The default is none.
+.TP
+.B @cpu_revamped_load5_width
+Characters the five minute load average is padded to on the left. A longer value is never cut. The default is none.
+.TP
+.B @cpu_revamped_load15_width
+Characters the fifteen minute load average is padded to on the left. A longer value is never cut. The default is none.
+.TP
+.B @cpu_revamped_count_width
+Characters the core count is padded to on the left. A longer value is never cut. The default is none.
+.TP
+.B @cpu_revamped_graph_width
+Characters the graph is padded to on the left. A longer value is never cut. The default is none.
+.TP
+.B @cpu_revamped_top_process_width
+Characters the busiest process is padded to on the left. A longer value is never cut. The default is none.
+.TP
+.B @cpu_revamped_governor_width
+Characters the governor is padded to on the left. A longer value is never cut. The default is none.
+.TP
+.B @revamped_theme
+The theme of every tmux-revamped tool, when nothing else sets one. The default
+is
+.BR kodougu .
+.PP
+The stored sample lives in
+.BR @cpu_revamped_percent ,
+.BR _temp ,
+.BR _freq ,
+.BR _load ,
+.BR _load5 ,
+.BR _load15 ,
+.BR _count ,
+.BR _governor ,
+.BR _top_process
+and
+.BR _history ,
+with the time of each reading in options that end in _ts. apply records the
+placeholders the status line uses in
+.BR @cpu_revamped_published ,
+the daemon writes each one to
+.BI @cpu_revamped_out_ name
+and keeps its process id in
+.BR @cpu_revamped_ticker_pid .
+.SH EXIT STATUS
+0 on success, 1 on any failure.
+.SH SEE ALSO
+.BR tmux (1),
+.BR iostat (8),
+.BR sysctl (8),
+.BR proc (5),
+.BR gum (1)

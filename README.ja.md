@@ -4,296 +4,405 @@
 
 <strong>CPUの負荷、温度、周波数をtmuxのステータスバーに表示し、描画を一切止めません。</strong>
 
-[English](README.md) | 日本語 | [简体中文](README.zh-Hans.md) | [繁體中文（香港）](README.zh-HK.md)
+[English](README.md) &nbsp;|&nbsp; 日本語 &nbsp;|&nbsp; [简体中文](README.zh-Hans.md) &nbsp;|&nbsp; [繁體中文（香港）](README.zh-HK.md)
 
-[![family](https://img.shields.io/github/actions/workflow/status/tmux-revamped/tmux-cpu-revamped/family.yml?branch=main&style=flat-square&label=family)](https://github.com/tmux-revamped/tmux-cpu-revamped/actions/workflows/family.yml)
-[![tests](https://img.shields.io/github/actions/workflow/status/tmux-revamped/tmux-cpu-revamped/tests.yml?branch=main&style=flat-square&label=tests)](https://github.com/tmux-revamped/tmux-cpu-revamped/actions/workflows/tests.yml)
+[![ci](https://img.shields.io/github/actions/workflow/status/tmux-revamped/tmux-cpu-revamped/ci.yml?branch=main&style=flat-square&label=ci)](https://github.com/tmux-revamped/tmux-cpu-revamped/actions/workflows/ci.yml)
 [![release](https://img.shields.io/github/v/release/tmux-revamped/tmux-cpu-revamped?style=flat-square&label=release)](https://github.com/tmux-revamped/tmux-cpu-revamped/releases/latest)
 [![openssf scorecard](https://img.shields.io/ossf-scorecard/github.com/tmux-revamped/tmux-cpu-revamped?style=flat-square&label=openssf%20scorecard)](https://scorecard.dev/viewer/?uri=github.com/tmux-revamped/tmux-cpu-revamped)
 [![license](https://img.shields.io/github/license/tmux-revamped/tmux-cpu-revamped?style=flat-square&label=license)](LICENSE)
 
 <p align="center">
-  <a href="#what-it-does">機能</a> |
-  <a href="#requirements">動作要件</a> |
-  <a href="#installation">インストール</a> |
-  <a href="#usage">使い方</a> |
-  <a href="#configuration">設定</a> |
-  <a href="#key-bindings">キーバインド</a> |
-  <a href="#how-it-works">仕組み</a>
+  <a href="#クイックスタート"><strong>クイックスタート</strong></a> &nbsp;|&nbsp;
+  <a href="#使い方">使い方</a> &nbsp;|&nbsp;
+  <a href="#仕組み">仕組み</a> &nbsp;|&nbsp;
+  <a href="#画面">画面</a>
 </p>
 
 </div>
 
-プレースホルダー**18**個。描画モード**2**種類。LinuxとmacOSで温度の情報源**7**種類。CIはLinuxとmacOSの**10**通りのツールチェーンの組み合わせでテストを実行します。
+<p align="center">
+  <img src="screens/hero.gif" alt="段階ごとの色で負荷と温度を表示し、モニターのポップアップを開き、Nerd Font のラベル、グラフ、options 描画モードに切り替える cpu-revamped" width="800">
+</p>
+
+```console
+$ cpu-revamped refresh
+Refreshed. 31% of the CPU is busy.
+$ cpu-revamped status percentage
+31%
+```
+
+プレースホルダー **18** 個、描画モード **2** つ、macOS と Linux、tmux **3.2** 以降。
 
 ---
 
-<a id="what-it-does"></a>
+## クイックスタート
 
-## 機能
-
-`status-left`と`status-right`の`#{cpu_*}`プレースホルダーを、CPUの負荷、温度、クロック、ロードアベレージ、コア数、負荷の履歴、最も負荷の高いプロセス、Linuxのガバナーに置き換えます。どのプレースホルダーもtmuxのオプションにキャッシュされた値を読みます。計測はバックグラウンドで行うため、ステータスラインが待たされることはありません。ディスクには何も書き込みません。
-
-`prefix + M-c`で詳細ポップアップも開きます。`btop`を動かし、`btop`がなければ`htop`、どちらもなければ`top`を動かします。
-
-<a id="requirements"></a>
-
-## 動作要件
+### 前提条件
 
 | ツール | バージョン | 用途 |
-|:-----|:--------|:-----------|
-| tmux | 3.2以降 | 詳細ポップアップの`display-popup` |
-| bash | 3.2以降 | macOSの`/bin/bash`を含むすべてのスクリプト |
-| `btop`または`htop` | 任意 | 任意。ポップアップは最初に見つかった方を動かし、どちらもなければ`top`を動かします |
-| 温度の補助ツール | 任意 | 任意。下の表を参照 |
+|:-----|:--------|:---------|
+| tmux | 3.2 以降 | ファミリー共通の最低バージョン。ポップアップにも必要です |
+| btop, htop | 任意 | ポップアップが開くモニター。なければ `top` を実行します |
+| gum | 任意 | `cpu-revamped` のメニュー、表、色。なくてもすべてのコマンドがプレーンテキストで動きます |
 
-| 値 | Linux、x86_64とarm64 | macOS Intel | macOS Apple Silicon |
-|:------|:------------------------|:------------|:--------------------|
-| 負荷 | `/proc/stat`を0.3秒の間隔で2回読む | `iostat`、次に`top` | `iostat`、次に`top` |
-| 温度 | サーマルゾーン、次にcoretemp、次にk10temp、次に`sensors` | `osx-cpu-temp`、次に`istats` | `macmon` |
-| クロック | `/proc/cpuinfo`、次に`scaling_cur_freq` | `sysctl hw.cpufrequency` | チップごとの最大クロックの表 |
-| ロードアベレージとコア数 | `/proc/loadavg`、`/proc/cpuinfo` | `sysctl` | `sysctl` |
+Linux と macOS で、BSD、GNU、uutils、BusyBox のいずれのツールでも動作します。各値は OS に付属するものから取得します。
+
+| 値 | Linux | macOS Intel | macOS Apple Silicon |
+|:---|:------|:------------|:--------------------|
+| 負荷 | `/proc/stat` を 0.3 秒おいて 2 回読みます | `iostat`、なければ `top` | `iostat`、なければ `top` |
+| 温度 | thermal zone、coretemp、k10temp、`sensors` の順です | `osx-cpu-temp`、なければ `istats` | `macmon` |
+| クロック | `/proc/cpuinfo`、なければ `scaling_cur_freq` | `sysctl hw.cpufrequency` | チップの世代ごとのクロックの表 |
+| ロードアベレージ | `/proc/loadavg` | `sysctl vm.loadavg` | `sysctl vm.loadavg` |
+| コア数 | `/proc/cpuinfo` | `sysctl hw.ncpu` | `sysctl hw.ncpu` |
 | ガバナー | `scaling_governor` | なし | なし |
+| 最も忙しいプロセス | `ps` | `ps` | `ps` |
 
-| プラットフォーム | 温度の補助ツール |
-|:---------|:-------------------|
-| macOS Apple Silicon | `brew install macmon`。sudoなしでセンサーを読みます |
-| macOS Intel | `brew install osx-cpu-temp`、または`gem install iStats` |
-| Linux | ほとんどのマシンで不要。`sensors`を代替手段にするなら`lm-sensors` |
+| プラットフォーム | 温度の取得ツール |
+|:-----------------|:-----------------|
+| macOS Apple Silicon | `brew install macmon`。sudo なしでセンサーを読みます |
+| macOS Intel | `brew install osx-cpu-temp`、または `gem install iStats` |
+| Linux | ほとんどの環境では不要です。`sensors` を使う場合は `lm-sensors` を入れます |
 
-ホストに情報源がない値は空で表示されます。`osx-cpu-temp`と`istats`はApple Siliconで`0.0`を返し、プラグインはそれを読み取りなしとして扱います。このホストで使えるものは`src/cpu.sh doctor`で確認できます。
+取得元がない場合、そのプレースホルダーは空になり、`cpu-revamped doctor` がその名前を表示します。`osx-cpu-temp` と `istats` は Apple Silicon で `0.0` を返しますが、これは値なしとして扱います。
 
-<a id="installation"></a>
+### インストール
 
-## インストール
-
-### TPMでインストール
-
-`~/.tmux.conf`にプラグインとプレースホルダーを追加し、`prefix + I`を押します。
+[TPM](https://github.com/tmux-plugins/tpm) を使う場合は、`~/.tmux.conf` にプラグインを追加して `prefix + I` を押します。
 
 ```tmux
 set -g @plugin 'tmux-revamped/tmux-cpu-revamped'
-set -g status-right '#{cpu_icon} #{cpu_percentage} #{cpu_temp}'
 ```
 
-### 手動インストール
+手動でインストールする場合は、リポジトリをクローンし、`~/.tmux.conf` からエントリポイントを実行します。
 
 ```bash
 git clone https://github.com/tmux-revamped/tmux-cpu-revamped ~/.tmux/plugins/tmux-cpu-revamped
 ```
 
-次の行を`~/.tmux.conf`の`status-left`と`status-right`を設定する行より後に追加し、tmuxを再読み込みします。
-
 ```tmux
 run-shell ~/.tmux/plugins/tmux-cpu-revamped/cpu-revamped.tmux
 ```
 
-<a id="usage"></a>
+`status-left` または `status-right` はプラグインを読み込む前に設定してください。プラグインは読み込み時に 1 回だけ、そこにあるプレースホルダーを置き換えます。
+
+クローンで `make install` を実行すると、`cpu-revamped` が `~/.local/bin` に、manページと補完が `~/.local/share` の下に入ります。
+
+### 確認
+
+```bash
+~/.tmux/plugins/tmux-cpu-revamped/bin/cpu-revamped doctor
+```
 
 ## 使い方
 
-`status-left`か`status-right`にプレースホルダーを書きます。プラグインは読み込み時にそれを置き換えます。完全な例は[`examples/status-right.tmux.conf`](examples/status-right.tmux.conf)にあります。
-
-```tmux
-set -g status-right '#{cpu_graph} #{cpu_load_color}#{cpu_icon} #{cpu_percentage}#[default] #{cpu_temp} #{cpu_alert}'
-```
+このプラグインは、CPU の負荷を、温度、クロック、ロードアベレージ、コア数、最近の負荷のグラフ、最も忙しいプロセス、Linux ではガバナーとともに表示します。ステータスラインは tmux がすでに持っている値を表示し、バックグラウンドの計測がそれを更新します。
 
 | プレースホルダー | 出力 |
-|:------------|:-------|
-| `#{cpu_percentage}` | CPUの負荷。例：`42%` |
-| `#{cpu_icon}` | 現在の負荷段階のアイコン |
-| `#{cpu_fg_color}`、`#{cpu_bg_color}` | 現在の負荷段階の色 |
-| `#{cpu_temp}` | 整数の温度。例：`54°C` |
-| `#{cpu_temp_icon}` | 現在の温度段階のアイコン |
-| `#{cpu_temp_fg_color}`、`#{cpu_temp_bg_color}` | 現在の温度段階の色 |
-| `#{cpu_freq}` | クロック。例：`4000MHz` |
-| `#{cpu_load}`、`#{cpu_load5}`、`#{cpu_load15}` | 1分、5分、15分のロードアベレージ。例：`1.23` |
-| `#{cpu_count}` | 論理CPUの数 |
-| `#{cpu_graph}` | 最近の負荷の推移。例：`▁▂▄▆█` |
-| `#{cpu_top_process}` | 最も負荷の高いプロセス。例：`node 42%` |
-| `#{cpu_governor}` | Linuxの周波数ガバナー。例：`performance` |
-| `#{cpu_load_color}` | コアあたりの1分ロードアベレージで決まる負荷段階の文字色 |
-| `#{cpu_alert}` | 負荷か温度が高の閾値に達したときに`@cpu_revamped_alert_icon`、それ以外は空 |
+|:-----------------|:-----|
+| `#{cpu_percentage}` | CPU の負荷で、たとえば`42%`です |
+| `#{cpu_icon}` | 負荷の段階を示すアイコンです |
+| `#{cpu_fg_color}` | 負荷の段階に応じた前景のスタイルです |
+| `#{cpu_bg_color}` | 負荷の段階に応じた背景のスタイルです |
+| `#{cpu_temp}` | 整数の度数での温度で、たとえば`54°C`です |
+| `#{cpu_temp_icon}` | 温度の段階を示すアイコンです |
+| `#{cpu_temp_fg_color}` | 温度の段階に応じた前景のスタイルです |
+| `#{cpu_temp_bg_color}` | 温度の段階に応じた背景のスタイルです |
+| `#{cpu_freq}` | メガヘルツでのクロックで、たとえば`4000MHz`です |
+| `#{cpu_load}` | 1 分間のロードアベレージで、たとえば`1.23`です |
+| `#{cpu_load5}` | 5 分間のロードアベレージです |
+| `#{cpu_load15}` | 15 分間のロードアベレージです |
+| `#{cpu_count}` | 論理 CPU の数です |
+| `#{cpu_graph}` | 最近の負荷のスパークラインで、たとえば`▁▂▄▆█`です |
+| `#{cpu_top_process}` | CPU を最も使っているプロセスで、たとえば`node 42%`です |
+| `#{cpu_governor}` | Linux の周波数ガバナーで、たとえば`performance`です。macOS では空です |
+| `#{cpu_load_color}` | 1 分間のロードアベレージをコアあたりで判定した、負荷の段階の前景のスタイルです |
+| `#{cpu_alert}` | 負荷または温度が高いしきい値に達している間は`@cpu_revamped_alert_icon`、それ以外は空です |
 
-<a id="configuration"></a>
-
-## 設定
-
-| オプション | 既定値 | 意味 |
-|:-------|:--------|:--------|
-| `@cpu_revamped_interval` | `5` | 負荷の読み取りを新しいとみなす秒数 |
-| `@cpu_revamped_detail_interval` | `60` | 温度、クロック、ロードアベレージ、コア数、最も負荷の高いプロセス、ガバナーを新しいとみなす秒数 |
-| `@cpu_revamped_render` | 空 | `options`でオプション描画モードにする。[仕組み](#how-it-works)を参照 |
-| `@cpu_revamped_throttle_when_detached` | `0` | `1`でクライアントが接続していない間は計測を止める |
-| `@cpu_revamped_percentage_format` | `%s%%` | 負荷のprintf書式 |
-| `@cpu_revamped_medium_thresh`、`@cpu_revamped_high_thresh` | `30`、`80` | 中と高の段階が始まる負荷のパーセント |
-| `@cpu_revamped_low_icon` | `▰▱▱` | 負荷が低の段階のアイコン |
-| `@cpu_revamped_medium_icon` | `▰▰▱` | 負荷が中の段階のアイコン |
-| `@cpu_revamped_high_icon` | `▰▰▰` | 負荷が高の段階のアイコン |
-| `@cpu_revamped_{low,medium,high}_{fg,bg}_color` | 空 | 負荷段階ごとの色 |
-| `@cpu_revamped_temp_unit` | `C` | `C`または`F` |
-| `@cpu_revamped_temp_format` | `%s°C` | 温度のprintf書式。単位は`@cpu_revamped_temp_unit`に従う |
-| `@cpu_revamped_temp_medium_thresh`、`@cpu_revamped_temp_high_thresh` | `65`、`80` | 温度の中と高の段階が始まる摂氏の温度 |
-| `@cpu_revamped_temp_low_icon` | 空 | 温度が低の段階のアイコン |
-| `@cpu_revamped_temp_medium_icon` | 空 | 温度が中の段階のアイコン |
-| `@cpu_revamped_temp_high_icon` | 空 | 温度が高の段階のアイコン |
-| `@cpu_revamped_temp_{low,medium,high}_{fg,bg}_color` | 空 | 温度段階ごとの色 |
-| `@cpu_revamped_freq_format` | `%sMHz` | クロックの書式 |
-| `@cpu_revamped_load_format` | `%s` | ロードアベレージの書式 |
-| `@cpu_revamped_graph_width` | `20` | `#{cpu_graph}`に残す読み取りの数 |
-| `@cpu_revamped_load_medium_ratio`、`@cpu_revamped_load_high_ratio` | `0.7`、`1.0` | `#{cpu_load_color}`が中と高になるコアあたりの負荷 |
-| `@cpu_revamped_alert_icon` | `!` | `#{cpu_alert}`の記号 |
-| `@cpu_revamped_icons` | `ascii` | `nerd`ですべての指標にNerd Fontの記号のラベルを付ける |
-| `@cpu_revamped_<metric>_label` | 空 | 値が空でないときに1つの指標の値の前に出す文字列。`''`で`nerd`のラベルを消す |
-| `@cpu_revamped_fixed_width` | `off` | `on`で各値を最大幅まで左側に詰め物をする |
-| `@cpu_revamped_<metric>_width` | 空 | 1つの指標の幅。固定幅より優先 |
-| `@cpu_revamped_popup_key` | `M-c` | 詳細ポップアップのprefixキー。`off`で割り当てない |
-| `@cpu_revamped_popup_command` | `btop`、次に`htop`、次に`top` | ポップアップで実行するコマンド。インストールされていないコマンドはメッセージで名前を示します |
-| `@cpu_revamped_popup_width`、`@cpu_revamped_popup_height` | `80%`、`80%` | ポップアップの大きさ |
-
-ラベルは`percentage`、`temp`、`freq`、`load`、`load5`、`load15`、`count`、`graph`、`top_process`、`governor`に付きます。幅の設定で長い値が切り詰められることはありません。
-
-### テーマの色
-
-色のオプションは既定で空のため、設定するまで色は付きません。次の各ブロックは低、中、高の段階をそれぞれ緑、黄、赤にします。
-
-<details>
-<summary>Catppuccin Mocha</summary>
+ステータスラインにプレースホルダーを置きます。
 
 ```tmux
-set -g @cpu_revamped_low_fg_color '#[fg=#a6e3a1]'
-set -g @cpu_revamped_medium_fg_color '#[fg=#f9e2af]'
-set -g @cpu_revamped_high_fg_color '#[fg=#f38ba8]'
-set -g @cpu_revamped_temp_low_fg_color '#[fg=#a6e3a1]'
-set -g @cpu_revamped_temp_medium_fg_color '#[fg=#f9e2af]'
-set -g @cpu_revamped_temp_high_fg_color '#[fg=#f38ba8]'
+set -g @cpu_revamped_low_fg_color '#[fg=green]'
+set -g @cpu_revamped_medium_fg_color '#[fg=yellow]'
+set -g @cpu_revamped_high_fg_color '#[fg=red]'
+
+set -g status-right '#{cpu_fg_color}#{cpu_icon} #{cpu_percentage}#[default] #{cpu_temp} '
 ```
 
-</details>
+オプションをいくつか足した同じ例が [examples/status-right.tmux.conf](examples/status-right.tmux.conf) にあります。
 
-<details>
-<summary>Dracula</summary>
+### ラベルと幅
 
-```tmux
-set -g @cpu_revamped_low_fg_color '#[fg=#50fa7b]'
-set -g @cpu_revamped_medium_fg_color '#[fg=#f1fa8c]'
-set -g @cpu_revamped_high_fg_color '#[fg=#ff5555]'
-set -g @cpu_revamped_temp_low_fg_color '#[fg=#50fa7b]'
-set -g @cpu_revamped_temp_medium_fg_color '#[fg=#f1fa8c]'
-set -g @cpu_revamped_temp_high_fg_color '#[fg=#ff5555]'
-```
+`@cpu_revamped_<metric>_label` は、値が空でないときだけ、1 つの指標の前にアイコンや語を表示します。`@cpu_revamped_icons` を `nerd` にすると、下の各指標に Nerd Font の記号のラベルが付きます。指標ごとのラベルはこのセットより優先され、空にしたラベルは既定値を意味するので記号は残ります。既定の `ascii` はラベルを付けません。
 
-</details>
+| 指標 | `nerd` のグリフ |
+|:-----|:----------------|
+| `percentage` | U+F029A |
+| `temp` | U+F050F |
+| `freq` | U+F04C5 |
+| `load` | U+F05D1 |
+| `load5` | U+F05D1 |
+| `load15` | U+F05D1 |
+| `count` | U+F061A |
+| `graph` | U+F07B1 |
+| `top_process` | U+F08C6 |
+| `governor` | U+F062E |
 
-<details>
-<summary>Nord</summary>
+`@cpu_revamped_fixed_width` を `on` にすると、各値を本来の幅、つまり負荷は 4 文字、温度とロードアベレージは 5 文字、クロックは 7 文字、コア数は 3 文字になるよう左から揃えるので、`9%` が `42%` に変わっても行の残りがずれません。`@cpu_revamped_<metric>_width` は 1 つの指標の幅を決め、固定幅より優先されます。長い値は切り詰めません。
 
-```tmux
-set -g @cpu_revamped_low_fg_color '#[fg=#a3be8c]'
-set -g @cpu_revamped_medium_fg_color '#[fg=#ebcb8b]'
-set -g @cpu_revamped_high_fg_color '#[fg=#bf616a]'
-set -g @cpu_revamped_temp_low_fg_color '#[fg=#a3be8c]'
-set -g @cpu_revamped_temp_medium_fg_color '#[fg=#ebcb8b]'
-set -g @cpu_revamped_temp_high_fg_color '#[fg=#bf616a]'
-```
+### 描画モード
 
-</details>
-
-<details>
-<summary>Gruvbox Dark</summary>
-
-```tmux
-set -g @cpu_revamped_low_fg_color '#[fg=#b8bb26]'
-set -g @cpu_revamped_medium_fg_color '#[fg=#fabd2f]'
-set -g @cpu_revamped_high_fg_color '#[fg=#fb4934]'
-set -g @cpu_revamped_temp_low_fg_color '#[fg=#b8bb26]'
-set -g @cpu_revamped_temp_medium_fg_color '#[fg=#fabd2f]'
-set -g @cpu_revamped_temp_high_fg_color '#[fg=#fb4934]'
-```
-
-</details>
-
-<details>
-<summary>Tokyo Night</summary>
-
-```tmux
-set -g @cpu_revamped_low_fg_color '#[fg=#9ece6a]'
-set -g @cpu_revamped_medium_fg_color '#[fg=#e0af68]'
-set -g @cpu_revamped_high_fg_color '#[fg=#f7768e]'
-set -g @cpu_revamped_temp_low_fg_color '#[fg=#9ece6a]'
-set -g @cpu_revamped_temp_medium_fg_color '#[fg=#e0af68]'
-set -g @cpu_revamped_temp_high_fg_color '#[fg=#f7768e]'
-```
-
-</details>
-
-<details>
-<summary>Solarized Dark</summary>
-
-```tmux
-set -g @cpu_revamped_low_fg_color '#[fg=#859900]'
-set -g @cpu_revamped_medium_fg_color '#[fg=#b58900]'
-set -g @cpu_revamped_high_fg_color '#[fg=#dc322f]'
-set -g @cpu_revamped_temp_low_fg_color '#[fg=#859900]'
-set -g @cpu_revamped_temp_medium_fg_color '#[fg=#b58900]'
-set -g @cpu_revamped_temp_high_fg_color '#[fg=#dc322f]'
-```
-
-</details>
-
-### 内部状態
-
-次のオプションはプラグインが自身で書き込みます。設定しないでください。
-
-| オプション | 内容 |
-|:-------|:------|
-| `@cpu_revamped_published` | 読み込み時に`status-left`と`status-right`で見つかった指標。オプションモードで公開するもの |
-| `@cpu_revamped_out_<metric>` | オプションモードで公開される各指標の値 |
-| `@cpu_revamped_ticker_pid` | オプションモードのバックグラウンドプロセスのpid |
-| `@cpu_revamped_option_names` | バックグラウンドプロセスが1周期に1回の呼び出しで読むオプション |
-| `@cpu_revamped_history` | `#{cpu_graph}`用の最近の負荷 |
-| `@cpu_revamped_{percent,temp,freq,load,load5,load15,count,top_process,governor}` | キャッシュされた読み取り。それぞれに`_ts`のタイムスタンプ、`percent`には`_lock`もある |
-
-<a id="key-bindings"></a>
-
-## キーバインド
-
-| キー | 操作 | オプション |
-|:----|:-------|:-------|
-| `prefix + M-c` | `@cpu_revamped_popup_command`を実行するポップアップを開く | `@cpu_revamped_popup_key` |
-
-tmux 3.2より古い場合、このキーはポップアップの代わりにメッセージを表示します。
-
-<a id="how-it-works"></a>
-
-## 仕組み
-
-既定のジョブモードでは、各プレースホルダーが[`src/cpu.sh`](src/cpu.sh)を呼ぶ`#()`になります。呼び出しはキャッシュされた値をすぐに出力します。キャッシュされた負荷が`@cpu_revamped_interval`より古ければ、バックグラウンドでの更新を1つ開始します。更新はロックで守られ、並行した呼び出しが2つ目を開始することはありません。
-
-tmuxはステータスを描き直すたびにすべての`#()`を実行します。1つのバーに複数のプラグインがあると、およそ1秒に1回になります。オプションモードはこの呼び出しをなくします。
+既定では、各プレースホルダーは `#()` の呼び出しになり、tmux はステータスの再描画のたびにそれを再実行します。`@cpu_revamped_render` を `options` にすると、各プレースホルダーは `#{E:@cpu_revamped_out_percentage}` のようなオプションの読み取りになります。サーバーごとに 1 つのバックグラウンドプロセスが `@cpu_revamped_interval` 秒ごとに計測し、すべての値を 1 回の tmux 呼び出しで書き込むため、値はそろって変わります。
 
 ```tmux
 set -g @cpu_revamped_render 'options'
 set -g @cpu_revamped_fixed_width 'on'
 ```
 
-各プレースホルダーは`#{E:@cpu_revamped_out_percentage}`のようなオプションの読み取りになります。サーバーごとに1つのバックグラウンドプロセスが`@cpu_revamped_interval`秒ごとにCPUを計測し、ステータスラインが使うすべての値を1回のtmux呼び出しで書き込み、1回だけ再描画します。このプロセスはサーバーが止まるか、設定の再読み込みで後継が起動すると終了します。ジョブモードに戻すと解放されます。
+### 段階ごとの色
 
-最も負荷の高いプロセスの名前は、キャッシュする前にすべての`#`を二重にします。そのためtmuxの書式に似た名前のプロセスも文字として表示されます。
+段階のスタイルは既定では空なので、設定するまで `#{cpu_fg_color}`、`#{cpu_bg_color}`、`#{cpu_temp_fg_color}`、`#{cpu_temp_bg_color}`、`#{cpu_load_color}` は何も出力しません。以下の配色は、low を緑、medium を黄、high を赤に対応させています。
 
-<a id="development"></a>
+| テーマ | 少 | 中 | 多 |
+|:-------|:---|:---|:---|
+| Catppuccin Mocha | `#a6e3a1` | `#f9e2af` | `#f38ba8` |
+| Dracula | `#50fa7b` | `#f1fa8c` | `#ff5555` |
+| Nord | `#a3be8c` | `#ebcb8b` | `#bf616a` |
+| Gruvbox Dark | `#b8bb26` | `#fabd2f` | `#fb4934` |
+| Tokyo Night | `#9ece6a` | `#e0af68` | `#f7768e` |
+| Solarized Dark | `#859900` | `#b58900` | `#dc322f` |
+
+各値は `set -g @cpu_revamped_low_fg_color '#[fg=#a6e3a1]'` のようにスタイルとして指定します。温度の段階は `@cpu_revamped_temp_<tier>_fg_color` に同じスタイルを指定します。
+
+| コマンド | 動作 |
+|:--------|:-------------|
+| `cpu-revamped apply` | ポップアップのキーを割り当て、プレースホルダーを今すぐ置き換えます。プラグインの読み込み時にエントリーポイントが実行します |
+| `cpu-revamped list` | `apply` が送るコマンドをすべて表示し、何も変更しません。`--json` で 1 つのオブジェクトを出力します |
+| `cpu-revamped status NAME` | プレースホルダーを 1 つ出力します。`percentage`、`temp`、`graph` などで、ステータスラインが実行します |
+| `cpu-revamped refresh` | CPU を今すぐ計測し、どれだけ使われているかを表示します |
+| `cpu-revamped card` | すべてを今すぐ読み取り、値ごとに 1 行で表示します |
+| `cpu-revamped popup` | CPU のモニターを tmux のポップアップで開きます。ポップアップのコマンド、なければ btop、htop、top の順です。ポップアップのキーが実行します |
+| `cpu-revamped daemon` | `options` 描画モードのために、ティックごとにプレースホルダーを公開します。`apply` が起動します |
+| `cpu-revamped doctor` | 依存関係ごとに 1 行。各値の取得元となるツールやファイル、ポップアップが開くモニター、触れなかったキーも含みます |
+| `cpu-revamped version` | バージョンと tmux のバージョン |
+| `cpu-revamped help` | ヘルプ。`man cpu-revamped` にも同じコマンドと設定があります |
+| `cpu-revamped` | 端末ではメニュー |
+
+## 設定
+
+どのオプションも、ダッシュ区切りのコマンドオプション（例 `--interval 2`）と環境変数（例 `CPU_REVAMPED_INTERVAL`）で指定できます。優先順位はコマンドライン、環境変数、tmux オプションの順です。空の tmux オプションは既定値を意味します。`doctor` は、プラグインが認識できない値を持つ設定の名前を表示します。`apply` に渡したものは、ポップアップのキーとすべてのステータスの呼び出しに引き継がれます。
+
+### 計測
+
+| オプション | 既定値 | 意味 |
+|:-----------|:-------|:-----|
+| `@cpu_revamped_interval` | `5` | 負荷の計測値が新しいとみなされる秒数です |
+| `@cpu_revamped_detail_interval` | `60` | 温度、クロック、ロードアベレージ、コア数、最も忙しいプロセス、ガバナーが新しいとみなされる秒数です |
+| `@cpu_revamped_throttle_when_detached` | `0` | `1` でクライアントが接続されていない間は計測しません。ステータスラインは最後の計測値を保ちます |
+| `@cpu_revamped_render` | `jobs` | `options` にすると `#()` の呼び出しの代わりに公開済みのオプションを読みます。それ以外の値は `jobs` として扱います |
+| `@cpu_revamped_graph_width` | `20` | `#{cpu_graph}` のために残す計測値の数です |
+
+### 段階とアラート
+
+| オプション | 既定値 | 意味 |
+|:-----------|:-------|:-----|
+| `@cpu_revamped_medium_thresh` | `30` | 段階がmediumになる負荷のパーセントです |
+| `@cpu_revamped_high_thresh` | `80` | 段階がhighになる負荷のパーセントで、`#{cpu_alert}`が表示される値でもあります |
+| `@cpu_revamped_low_icon` | `▰▱▱` | low段階のアイコンです |
+| `@cpu_revamped_medium_icon` | `▰▰▱` | medium段階のアイコンです |
+| `@cpu_revamped_high_icon` | `▰▰▰` | high段階のアイコンです |
+| `@cpu_revamped_low_fg_color` | 空 | 負荷のlow段階の前景のスタイルで、たとえば`#[fg=green]`です |
+| `@cpu_revamped_medium_fg_color` | 空 | 負荷のmedium段階の前景のスタイルです |
+| `@cpu_revamped_high_fg_color` | 空 | 負荷のhigh段階の前景のスタイルです |
+| `@cpu_revamped_low_bg_color` | 空 | 負荷のlow段階の背景のスタイルです |
+| `@cpu_revamped_medium_bg_color` | 空 | 負荷のmedium段階の背景のスタイルです |
+| `@cpu_revamped_high_bg_color` | 空 | 負荷のhigh段階の背景のスタイルです |
+| `@cpu_revamped_temp_medium_thresh` | `65` | 温度の段階がmediumになる摂氏の度数です |
+| `@cpu_revamped_temp_high_thresh` | `80` | 温度の段階がhighになる摂氏の度数で、`#{cpu_alert}`が表示される値でもあります |
+| `@cpu_revamped_temp_low_icon` | 空 | 温度のlow段階のアイコンです |
+| `@cpu_revamped_temp_medium_icon` | 空 | 温度のmedium段階のアイコンです |
+| `@cpu_revamped_temp_high_icon` | 空 | 温度のhigh段階のアイコンです |
+| `@cpu_revamped_temp_low_fg_color` | 空 | 温度のlow段階の前景のスタイルです |
+| `@cpu_revamped_temp_medium_fg_color` | 空 | 温度のmedium段階の前景のスタイルです |
+| `@cpu_revamped_temp_high_fg_color` | 空 | 温度のhigh段階の前景のスタイルです |
+| `@cpu_revamped_temp_low_bg_color` | 空 | 温度のlow段階の背景のスタイルです |
+| `@cpu_revamped_temp_medium_bg_color` | 空 | 温度のmedium段階の背景のスタイルです |
+| `@cpu_revamped_temp_high_bg_color` | 空 | 温度のhigh段階の背景のスタイルです |
+| `@cpu_revamped_load_medium_ratio` | `0.7` | `#{cpu_load_color}`がmediumになる、コアあたりのロードアベレージです |
+| `@cpu_revamped_load_high_ratio` | `1.0` | `#{cpu_load_color}`がhighになる、コアあたりのロードアベレージです |
+| `@cpu_revamped_alert_icon` | `!` | `#{cpu_alert}`が表示するテキストです |
+
+### 書式とラベル
+
+| オプション | 既定値 | 意味 |
+|:-----------|:-------|:-----|
+| `@cpu_revamped_temp_unit` | `C` | `C`または`F`です |
+| `@cpu_revamped_percentage_format` | `%s%%` | 負荷のprintf書式です |
+| `@cpu_revamped_temp_format` | `%s°C` | 温度のprintf書式です。単位は`@cpu_revamped_temp_unit`に従います |
+| `@cpu_revamped_freq_format` | `%sMHz` | クロックのprintf書式です |
+| `@cpu_revamped_load_format` | `%s` | 3つのロードアベレージのprintf書式です |
+| `@cpu_revamped_icons` | `ascii` | `nerd`にするとすべての値にNerd Fontの記号のラベルを付けます |
+| `@cpu_revamped_<metric>_label` | 空 | 1つの値の前に出すテキストで、値が空でないときだけ出ます |
+| `@cpu_revamped_fixed_width` | `off` | `on`で各値を本来の幅に揃え、`9%`が`42%`に変わってもステータス行がずれないようにします |
+| `@cpu_revamped_<metric>_width` | 空 | 1つの値をこの文字数に揃えます。長い値は切り詰めません |
+
+ラベルと幅を持てる指標は、`percentage`、`temp`、`freq`、`load`、`load5`、`load15`、`count`、`graph`、`top_process`、`governor`です。
+
+### ポップアップ
+
+| オプション | 既定値 | 意味 |
+|:-----------|:-------|:-----|
+| `@cpu_revamped_popup_key` | `M-c` | 詳細のポップアップを開くプレフィックスキーです。`off`で何も割り当てません |
+| `@cpu_revamped_popup_command` | btop、htop、top の順 | ポップアップが実行するコマンドで、引数も指定できます。インストールされていないものはメッセージで名前を表示します |
+| `@cpu_revamped_popup_width` | `80%` | ポップアップの幅です |
+| `@cpu_revamped_popup_height` | `80%` | ポップアップの高さです |
+
+### 内部状態
+
+以下のオプションはプラグイン自身が書き込みます。設定しないでください。
+
+| オプション | 保持する内容 |
+|:-----------|:-------------|
+| `@cpu_revamped_published` | ステータス行が使う指標で、オプションモードがそれだけを書き込むよう読み込み時に記録します |
+| `@cpu_revamped_history` | `#{cpu_graph}`のもとになる、最近の負荷の計測値です |
+| `@cpu_revamped_out_<metric>` | オプションモードでの各指標の描画済みの値です |
+| `@cpu_revamped_ticker_pid` | オプションモードのバックグラウンドのプロセスのIDです |
+| `@cpu_revamped_percent` などの値、`_ts`、`_lock` | 保存した計測値、それぞれの読み取り時刻と更新ロック |
+
+## キーバインド
+
+| キー | 動作 | 既定 |
+|:-----|:-----|:-----|
+| `prefix + M-c` | CPU のモニターをポップアップで開きます。指定したコマンド、なければ btop、htop、top の順です | 割り当て済み |
+
+`@cpu_revamped_popup_key` で別のキーを指定でき、`off` にすると割り当てません。既定のキーがすでに他で使われている場合は触れず、`cpu-revamped doctor` がそれを表示します。
+
+<a id="仕組み"></a>
+
+## 仕組み
+
+tmux がプラグインを読み込むと、[`cpu-revamped.tmux`](cpu-revamped.tmux) が 1 回実行されます。`status-left` と `status-right` が使う指標を `@cpu_revamped_published` に記録し、各プレースホルダーを [`bin/cpu-revamped`](bin/cpu-revamped) の呼び出しに置き換えます。`options` モードでは、オプションの読み取りに置き換えてバックグラウンドプロセスを起動します。
+
+既定のモードでは、各 `#()` の呼び出しは保存済みの計測値をすぐに返します。計測値が間隔より古ければ、ロックを取ってバックグラウンドで更新を始めるため、同時に動く更新は 1 つだけです。Linux の負荷は、0.3 秒おいて 2 回読んだ `/proc/stat` の使用中の割合で、iowait はアイドルとして数えます。macOS では `iostat` のアイドルの割合を 100 から引いた値で、`iostat` がなければ `top` から求めます。1 つの `awk` が読み取り結果をすべての値に変換し、1 回の tmux 呼び出しで保存します。温度、クロック、ロードアベレージ、最も忙しいプロセス、ガバナーは読み取りの負担が大きいため、ステータスラインが使うプレースホルダーの分だけ、`@cpu_revamped_detail_interval` 秒ごとに読み取ります。
+
+温度は、応答した最初の取得元から得ます。Linux では thermal zone、coretemp、k10temp、`sensors` の順、Apple Silicon では `macmon`、Mac ではそのあとに `osx-cpu-temp` と `istats` です。最も忙しいプロセスの名前は `ps` から得られ、どのユーザーでも変えられるため、ステータスラインに渡す前にすべての `#` を二重にします。読み取り、計測、整形は [`lib/cpu.sh`](lib/cpu.sh) に、設定の表は [`lib/state.sh`](lib/state.sh) にあります。
+
+<a id="画面"></a>
+
+## 画面
+
+<details>
+<summary>実際の tmux の中で <code>make screens</code> により録画したすべての画面。押したキーをステータスラインに表示しています</summary>
+<br>
+
+<table>
+<tr>
+<td width="50%" valign="top"><img src="screens/status.png" alt="cpu-revamped: 負荷の段階のアイコンと色、温度、クロック、ロードアベレージ、アラート"><br><sub>負荷の段階のアイコンと色、温度、クロック、ロードアベレージ、アラート, より <code>hero.tape</code></sub></td>
+<td width="50%" valign="top"><img src="screens/popup.png" alt="cpu-revamped: prefix M-c で CPU のモニターをポップアップで開きます"><br><sub><code>prefix M-c</code> で CPU のモニターをポップアップで開きます, より <code>hero.tape</code></sub></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><img src="screens/icons.png" alt="cpu-revamped: @cpu_revamped_icons を nerd にすると、すべての指標にグリフのラベルが付きます"><br><sub><code>@cpu_revamped_icons</code> を <code>nerd</code> にすると、すべての指標にグリフのラベルが付きます, より <code>hero.tape</code></sub></td>
+<td width="50%" valign="top"><img src="screens/graph.png" alt="cpu-revamped: グラフ、負荷、最も忙しいプロセス"><br><sub>グラフ、負荷、最も忙しいプロセス, より <code>hero.tape</code></sub></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><img src="screens/options.png" alt="cpu-revamped: options 描画モードでは、各プレースホルダーが tmux のオプションを読み取ります"><br><sub><code>options</code> 描画モードでは、各プレースホルダーが tmux のオプションを読み取ります, より <code>hero.tape</code></sub></td>
+<td width="50%" valign="top"><img src="screens/card.png" alt="cpu-revamped: card はすべての値を表示します"><br><sub><code>card</code> はすべての値を表示します, より <code>features.tape</code></sub></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><img src="screens/temp.png" alt="cpu-revamped: 温度の段階のアイコンと色、アラート"><br><sub>温度の段階のアイコンと色、アラート, より <code>features.tape</code></sub></td>
+<td width="50%" valign="top"><img src="screens/unit.png" alt="cpu-revamped: @cpu_revamped_temp_unit を F にした状態"><br><sub><code>@cpu_revamped_temp_unit</code> を <code>F</code> にした状態, より <code>features.tape</code></sub></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><img src="screens/load.png" alt="cpu-revamped: 3 つのロードアベレージ、コア数、ロードの色"><br><sub>3 つのロードアベレージ、コア数、ロードの色, より <code>features.tape</code></sub></td>
+<td width="50%" valign="top"><img src="screens/load-format.png" alt="cpu-revamped: @cpu_revamped_load_format でロードアベレージの書式を決めます"><br><sub><code>@cpu_revamped_load_format</code> でロードアベレージの書式を決めます, より <code>features.tape</code></sub></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><img src="screens/ratios.png" alt="cpu-revamped: @cpu_revamped_load_medium_ratio と @cpu_revamped_load_high_ratio でロードの色の境界を動かします"><br><sub><code>@cpu_revamped_load_medium_ratio</code> と <code>@cpu_revamped_load_high_ratio</code> でロードの色の境界を動かします, より <code>features.tape</code></sub></td>
+<td width="50%" valign="top"><img src="screens/clock.png" alt="cpu-revamped: クロック、ガバナー、最も忙しいプロセス"><br><sub>クロック、ガバナー、最も忙しいプロセス, より <code>features.tape</code></sub></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><img src="screens/freq-format.png" alt="cpu-revamped: @cpu_revamped_freq_format でクロックの書式を決めます"><br><sub><code>@cpu_revamped_freq_format</code> でクロックの書式を決めます, より <code>features.tape</code></sub></td>
+<td width="50%" valign="top"><img src="screens/format.png" alt="cpu-revamped: @cpu_revamped_percentage_format で負荷のパーセントの書式を決めます"><br><sub><code>@cpu_revamped_percentage_format</code> で負荷のパーセントの書式を決めます, より <code>features.tape</code></sub></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><img src="screens/fixed.png" alt="cpu-revamped: @cpu_revamped_fixed_width は各値を本来の幅に揃えます"><br><sub><code>@cpu_revamped_fixed_width</code> は各値を本来の幅に揃えます, より <code>features.tape</code></sub></td>
+<td width="50%" valign="top"><img src="screens/width.png" alt="cpu-revamped: @cpu_revamped_count_width は 1 つの指標を指定の幅に揃えます"><br><sub><code>@cpu_revamped_count_width</code> は 1 つの指標を指定の幅に揃えます, より <code>features.tape</code></sub></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><img src="screens/labels.png" alt="cpu-revamped: 1 つの指標の前に出す独自のラベル"><br><sub>1 つの指標の前に出す独自のラベル, より <code>features.tape</code></sub></td>
+<td width="50%" valign="top"><img src="screens/tiers.png" alt="cpu-revamped: @cpu_revamped_medium_thresh と @cpu_revamped_high_thresh で段階の境界を動かします"><br><sub><code>@cpu_revamped_medium_thresh</code> と <code>@cpu_revamped_high_thresh</code> で段階の境界を動かします, より <code>features.tape</code></sub></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><img src="screens/graph-width.png" alt="cpu-revamped: @cpu_revamped_graph_width はグラフが残す計測値の数を決めます"><br><sub><code>@cpu_revamped_graph_width</code> はグラフが残す計測値の数を決めます, より <code>features.tape</code></sub></td>
+<td width="50%" valign="top"><img src="screens/popup-key.png" alt="cpu-revamped: @cpu_revamped_popup_key でポップアップに別のキーを指定します"><br><sub><code>@cpu_revamped_popup_key</code> でポップアップに別のキーを指定します, より <code>features.tape</code></sub></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><img src="screens/popup-command.png" alt="cpu-revamped: @cpu_revamped_popup_command でポップアップが実行するコマンドを、サイズとともに指定します"><br><sub><code>@cpu_revamped_popup_command</code> でポップアップが実行するコマンドを、サイズとともに指定します, より <code>features.tape</code></sub></td>
+<td width="50%" valign="top"><img src="screens/status-command.png" alt="cpu-revamped: status percentage と status graph はプレースホルダーを 1 つずつ出力します"><br><sub><code>status percentage</code> と <code>status graph</code> はプレースホルダーを 1 つずつ出力します, より <code>stills.tape</code></sub></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><img src="screens/refresh.png" alt="cpu-revamped: refresh は CPU を今すぐ計測します"><br><sub><code>refresh</code> は CPU を今すぐ計測します, より <code>stills.tape</code></sub></td>
+<td width="50%" valign="top"><img src="screens/list.png" alt="cpu-revamped: list はすべてのバインディングを表示します"><br><sub><code>list</code> はすべてのバインディングを表示します, より <code>stills.tape</code></sub></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><img src="screens/json.png" alt="cpu-revamped: list --json は同じ内容を 1 つのオブジェクトで出力します"><br><sub><code>list --json</code> は同じ内容を 1 つのオブジェクトで出力します, より <code>stills.tape</code></sub></td>
+<td width="50%" valign="top"><img src="screens/doctor.png" alt="cpu-revamped: doctor"><br><sub><code>doctor</code>, より <code>stills.tape</code></sub></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><img src="screens/menu.png" alt="cpu-revamped: メニュー"><br><sub>メニュー, より <code>stills.tape</code></sub></td>
+<td width="50%" valign="top"><img src="screens/menu-card.png" alt="cpu-revamped: メニューから開いたカード"><br><sub>メニューから開いたカード, より <code>stills.tape</code></sub></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><img src="screens/accent.png" alt="cpu-revamped: CPU_REVAMPED_ACCENT によるアクセント"><br><sub><code>CPU_REVAMPED_ACCENT</code> によるアクセント, より <code>stills.tape</code></sub></td>
+<td width="50%" valign="top"><img src="screens/plain-menu.png" alt="cpu-revamped: gum なしのメニュー"><br><sub>gum なしのメニュー, より <code>stills.tape</code></sub></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><img src="screens/plain-doctor.png" alt="cpu-revamped: メニューから開いた doctor（gum なし）"><br><sub>メニューから開いた <code>doctor</code>（gum なし）, より <code>stills.tape</code></sub></td>
+<td width="50%" valign="top"><img src="screens/plain-card.png" alt="cpu-revamped: gum なしの card"><br><sub>gum なしの <code>card</code>, より <code>stills.tape</code></sub></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><img src="screens/version.png" alt="cpu-revamped: バージョン"><br><sub>バージョン, より <code>stills.tape</code></sub></td>
+<td width="50%" valign="top"><img src="screens/error.png" alt="cpu-revamped: 未知のコマンド"><br><sub>未知のコマンド, より <code>stills.tape</code></sub></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><img src="screens/themes.png" alt="cpu-revamped: 6 つのテーマでのヘッダー"><br><sub>6 つのテーマでのヘッダー, より <code>themes.tape</code></sub></td>
+<td width="50%" valign="top"><img src="screens/help.png" alt="cpu-revamped: ヘルプ"><br><sub>ヘルプ, より <code>help.tape</code></sub></td>
+</tr>
+</table>
+
+録画では実際のプラグインと tmux を動かしています。`iostat`、`sysctl`、`macmon`、`osx-cpu-temp`、`ps`、`top` は小さなスクリプトで代用しているため、画面上の数値はそれらのものです。録画は macOS で行うため、ガバナーがなく、`#{cpu_governor}` は何も表示しません。
+
+</details>
+
+## 移植性
+
+プラグインは POSIX `sh` です。CI は下の各行ですべてのテストを実行します。
+
+| シェル | 状態 |
+|:------|:-------|
+| `dash`、macOS の `/bin/sh` | 対応 |
+| `bash` 3.2 と 5.x、システムの `zsh` と Homebrew の `zsh` | 対応 |
+
+| システム | 状態 |
+|:-------|:-------|
+| macOS | Apple Silicon と Intel の Tahoe。付属のツール、Homebrew の GNU ツール、Homebrew の uutils で確認 |
+| Linux | x86_64 と arm64 の Ubuntu 26.04。GNU coreutils、uutils、BusyBox で確認 |
 
 ## 開発
 
 | コマンド | 実行内容 |
 |:--------|:-------------|
-| `make test` | [`test/`](test)以下のbatsテスト |
-| `make lint` | すべてのシェルファイルへのshellcheck |
-| `make coverage` | Linuxでのkcovによる行カバレッジ。95%未満で失敗します |
+| `make fmt` | すべてのスクリプトに shfmt `-i 2` をかけます |
+| `make lint` | shfmt、ShellCheck、mandoc、yamllint、actionlint を、指摘ゼロで通します |
+| `make test` | システムの `sh` で bats のテスト |
+| `make test-all` | インストール済みのすべてのシェルでテスト。macOS では bash と zsh の両方のビルドを含みます |
+| `make test-linux` | Ubuntu のコンテナでテスト |
+| `make coverage` | この Mac と Ubuntu のコンテナで bashcov を実行し、合算して 100 パーセントで判定します |
+| `make screens` | 上の画面を、本物のプラグインから tmux の中で VHS で録画します。macOS で実行します |
+| `make install` | コマンド、manページ、補完を `PREFIX` の下に置きます |
 
 macOS では、`brew bundle` を実行すると、これらのターゲットが使うツールがすべて [`Brewfile`](Brewfile) からインストールされます。
 
-<a id="license"></a>
+コミットは Conventional Commits の形式に従い、そのまま `main` に入ります。`main` で `ci` が成功すると、`release.yml` が semantic-release を実行します。前回のタグ以降に `feat` か `fix` があればリリースを公開し、バージョン定数を更新し、変更内容を [`CHANGELOG.md`](CHANGELOG.md) に追加します。
 
 ## ライセンス
 

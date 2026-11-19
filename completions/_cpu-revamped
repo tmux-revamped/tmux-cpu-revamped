@@ -1,0 +1,89 @@
+#compdef cpu-revamped
+
+_cpu_revamped() {
+  local -a commands
+  commands=(
+    'apply:bind the key and fill the status placeholders'
+    'list:print every command apply would send'
+    'status:print one placeholder'
+    'refresh:sample the CPU now'
+    'card:print every figure as a table'
+    'popup:open a CPU monitor in a tmux popup'
+    'daemon:publish the placeholders on every tick'
+    'doctor:check this machine'
+    'version:print the version'
+    'help:print the help page'
+  )
+
+  _arguments \
+    '--json[list prints one JSON object]' \
+    '--theme[colours of the terminal interface]:theme:(kodougu catppuccin-mocha catppuccin-latte dracula nord gruvbox tokyo-night mono)' \
+    '--popup-key[key of the monitor popup]:value:' \
+    '--popup-width[width of the popup]:value:' \
+    '--popup-height[height of the popup]:value:' \
+    '--popup-command[what the popup runs]:value:' \
+    '--interval[seconds a sample stays fresh]:value:' \
+    '--detail-interval[seconds the details stay fresh]:value:' \
+    '--throttle-when-detached[1 stops sampling while no client is attached]:value:(0 1)' \
+    '--render[jobs or options]:value:(jobs options)' \
+    '--medium-thresh[percent that starts the medium tier]:value:' \
+    '--high-thresh[percent that starts the high tier]:value:' \
+    '--temp-medium-thresh[degrees that start the medium temperature tier]:value:' \
+    '--temp-high-thresh[degrees that start the high temperature tier]:value:' \
+    '--load-medium-ratio[load average per core that starts the medium colour]:value:' \
+    '--load-high-ratio[load average per core that starts the high colour]:value:' \
+    '--low-icon[icon of the low tier]:value:' \
+    '--medium-icon[icon of the medium tier]:value:' \
+    '--high-icon[icon of the high tier]:value:' \
+    '--low-fg-color[foreground style of the low tier]:value:' \
+    '--medium-fg-color[foreground style of the medium tier]:value:' \
+    '--high-fg-color[foreground style of the high tier]:value:' \
+    '--low-bg-color[background style of the low tier]:value:' \
+    '--medium-bg-color[background style of the medium tier]:value:' \
+    '--high-bg-color[background style of the high tier]:value:' \
+    '--temp-low-icon[icon of the low temperature tier]:value:' \
+    '--temp-medium-icon[icon of the medium temperature tier]:value:' \
+    '--temp-high-icon[icon of the high temperature tier]:value:' \
+    '--temp-low-fg-color[foreground style of the low temperature tier]:value:' \
+    '--temp-medium-fg-color[foreground style of the medium temperature tier]:value:' \
+    '--temp-high-fg-color[foreground style of the high temperature tier]:value:' \
+    '--temp-low-bg-color[background style of the low temperature tier]:value:' \
+    '--temp-medium-bg-color[background style of the medium temperature tier]:value:' \
+    '--temp-high-bg-color[background style of the high temperature tier]:value:' \
+    '--alert-icon[text of the alert]:value:' \
+    '--temp-unit[C or F]:value:(C F)' \
+    '--percentage-format[printf format of the load percent]:value:' \
+    '--temp-format[printf format of the temperature]:value:' \
+    '--freq-format[printf format of the clock]:value:' \
+    '--load-format[printf format of the load averages]:value:' \
+    '--icons[ascii or nerd]:value:(ascii nerd)' \
+    '--fixed-width[pad every figure to its natural width]:value:(on off)' \
+    '--percentage-label[label before the load percent]:value:' \
+    '--temp-label[label before the temperature]:value:' \
+    '--freq-label[label before the clock]:value:' \
+    '--load-label[label before the one minute load average]:value:' \
+    '--load5-label[label before the five minute load average]:value:' \
+    '--load15-label[label before the fifteen minute load average]:value:' \
+    '--count-label[label before the core count]:value:' \
+    '--graph-label[label before the graph]:value:' \
+    '--top-process-label[label before the busiest process]:value:' \
+    '--governor-label[label before the governor]:value:' \
+    '--percentage-width[width of the load percent]:value:' \
+    '--temp-width[width of the temperature]:value:' \
+    '--freq-width[width of the clock]:value:' \
+    '--load-width[width of the one minute load average]:value:' \
+    '--load5-width[width of the five minute load average]:value:' \
+    '--load15-width[width of the fifteen minute load average]:value:' \
+    '--count-width[width of the core count]:value:' \
+    '--graph-width[width of the graph]:value:' \
+    '--top-process-width[width of the busiest process]:value:' \
+    '--governor-width[width of the governor]:value:' \
+    '1:command:->command' \
+    '2:name:(percentage icon fg_color bg_color temp temp_icon temp_fg_color temp_bg_color freq load load5 load15 count graph top_process governor load_color alert)'
+
+  if [[ "${state}" == command ]]; then
+    _describe 'command' commands
+  fi
+}
+
+_cpu_revamped "$@"

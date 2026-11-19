@@ -1,0 +1,20 @@
+$ cpu-revamped doctor
+tmux               ok       <path>, 3.8
+popup              ok       tmux 3.8 opens the detail popup
+top                warn     without iostat or top the load stays 0
+sysctl             warn     without it those figures stay empty
+macmon             warn     without it the temperature stays empty on Apple Silicon
+osx-cpu-temp       warn     the temperature falls back to istats on an Intel Mac
+istats             warn     without it and osx-cpu-temp the temperature stays empty on an Intel Mac
+governor           warn     macOS has no CPU governor, so the governor stays empty
+ps                 warn     without it the busiest process stays empty
+monitor            warn     top is not installed, so the popup names it in a message
+settings           ok       every option holds a value it knows
+keys               ok       every key it binds is free or its own
+gum                ok       <path>
+awk                ok       <path>, <flavor>
+sed                ok       <path>, <flavor>
+tr                 ok       <path>, <flavor>
+date               ok       <path>, <flavor>
+cat                ok       <path>, <flavor>
+exit 0

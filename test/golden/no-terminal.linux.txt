@@ -1,0 +1,3 @@
+$ cpu-revamped
+cpu-revamped: no command given. run 'cpu-revamped help' for usage.
+exit 1

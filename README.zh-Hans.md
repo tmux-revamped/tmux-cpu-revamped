@@ -2,298 +2,407 @@
 
 # tmux-cpu-revamped
 
-<strong>在 tmux 状态栏显示 CPU 负载、温度和频率，从不阻塞渲染。</strong>
+<strong>在 tmux 状态栏显示 CPU 负载、温度和频率，绝不阻塞渲染。</strong>
 
-[English](README.md) | [日本語](README.ja.md) | 简体中文 | [繁體中文（香港）](README.zh-HK.md)
+[English](README.md) &nbsp;|&nbsp; [日本語](README.ja.md) &nbsp;|&nbsp; 简体中文 &nbsp;|&nbsp; [繁體中文（香港）](README.zh-HK.md)
 
-[![family](https://img.shields.io/github/actions/workflow/status/tmux-revamped/tmux-cpu-revamped/family.yml?branch=main&style=flat-square&label=family)](https://github.com/tmux-revamped/tmux-cpu-revamped/actions/workflows/family.yml)
-[![tests](https://img.shields.io/github/actions/workflow/status/tmux-revamped/tmux-cpu-revamped/tests.yml?branch=main&style=flat-square&label=tests)](https://github.com/tmux-revamped/tmux-cpu-revamped/actions/workflows/tests.yml)
+[![ci](https://img.shields.io/github/actions/workflow/status/tmux-revamped/tmux-cpu-revamped/ci.yml?branch=main&style=flat-square&label=ci)](https://github.com/tmux-revamped/tmux-cpu-revamped/actions/workflows/ci.yml)
 [![release](https://img.shields.io/github/v/release/tmux-revamped/tmux-cpu-revamped?style=flat-square&label=release)](https://github.com/tmux-revamped/tmux-cpu-revamped/releases/latest)
 [![openssf scorecard](https://img.shields.io/ossf-scorecard/github.com/tmux-revamped/tmux-cpu-revamped?style=flat-square&label=openssf%20scorecard)](https://scorecard.dev/viewer/?uri=github.com/tmux-revamped/tmux-cpu-revamped)
 [![license](https://img.shields.io/github/license/tmux-revamped/tmux-cpu-revamped?style=flat-square&label=license)](LICENSE)
 
 <p align="center">
-  <a href="#what-it-does">功能</a> |
-  <a href="#requirements">环境要求</a> |
-  <a href="#installation">安装</a> |
-  <a href="#usage">用法</a> |
-  <a href="#configuration">配置</a> |
-  <a href="#key-bindings">快捷键</a> |
-  <a href="#how-it-works">工作原理</a>
+  <a href="#快速开始"><strong>快速开始</strong></a> &nbsp;|&nbsp;
+  <a href="#用法">用法</a> &nbsp;|&nbsp;
+  <a href="#工作原理">工作原理</a> &nbsp;|&nbsp;
+  <a href="#界面">界面</a>
 </p>
 
 </div>
 
-**18** 个占位符。**2** 种渲染模式。Linux 和 macOS 上共 **7** 个温度数据源。CI 在 **10** 种 Linux 和 macOS 工具链组合上运行测试。
+<p align="center">
+  <img src="screens/hero.gif" alt="cpu-revamped 按档位颜色显示负载和温度，打开监视器弹窗，并切换到 Nerd Font 标签、图表和 options 渲染模式" width="800">
+</p>
+
+```console
+$ cpu-revamped refresh
+Refreshed. 31% of the CPU is busy.
+$ cpu-revamped status percentage
+31%
+```
+
+**18** 个占位符，**2** 种渲染模式，支持 macOS 和 Linux，需要 tmux **3.2** 或更高版本。
 
 ---
 
-<a id="what-it-does"></a>
+## 快速开始
 
-## 功能
-
-插件把 `status-left` 和 `status-right` 中的 `#{cpu_*}` 占位符替换为 CPU 负载、温度、频率、平均负载、核心数、负载历史、最繁忙的进程和 Linux 调频策略。每个占位符读取缓存在 tmux 选项中的值。采样在后台进行，状态栏从不等待。不向磁盘写入任何内容。
-
-它还会通过 `prefix + M-c` 打开详情弹窗，运行 `btop`；没有安装 `btop` 时运行 `htop`，两者都没有时运行 `top`。
-
-<a id="requirements"></a>
-
-## 环境要求
+### 前提条件
 
 | 工具 | 版本 | 用途 |
-|:-----|:--------|:-----------|
-| tmux | 3.2 或更高 | 详情弹窗所用的 `display-popup` |
-| bash | 3.2 或更高 | 所有脚本，包括 macOS 的 `/bin/bash` |
-| `btop` 或 `htop` | 任意 | 可选；弹窗运行最先找到的一个，两者都没有时运行 `top` |
-| 温度辅助工具 | 任意 | 可选，见下表 |
+|:-----|:--------|:---------|
+| tmux | 3.2 或更高 | 家族的最低版本，弹窗也需要它 |
+| btop, htop | 可选 | 弹窗打开的监视器；没有时运行 `top` |
+| gum | 可选 | `cpu-revamped` 的菜单、表格和颜色；没有它时所有命令输出纯文本 |
 
-| 数值 | Linux，x86_64 和 arm64 | macOS Intel | macOS Apple Silicon |
-|:------|:------------------------|:------------|:--------------------|
-| 负载 | `/proc/stat`，间隔 0.3 秒读取两次 | `iostat`，其次 `top` | `iostat`，其次 `top` |
-| 温度 | 温度区，其次 coretemp，其次 k10temp，其次 `sensors` | `osx-cpu-temp`，其次 `istats` | `macmon` |
-| 频率 | `/proc/cpuinfo`，其次 `scaling_cur_freq` | `sysctl hw.cpufrequency` | 按芯片列出的最高频率表 |
-| 平均负载和核心数 | `/proc/loadavg`、`/proc/cpuinfo` | `sysctl` | `sysctl` |
-| 调频策略 | `scaling_governor` | 无 | 无 |
+它在 Linux 和 macOS 上运行，BSD、GNU、uutils 或 BusyBox 工具均可。每个数值都来自系统自带的来源：
 
-| 平台 | 温度辅助工具 |
-|:---------|:-------------------|
+| 数值 | Linux | macOS Intel | macOS Apple Silicon |
+|:-----|:------|:------------|:--------------------|
+| 负载 | `/proc/stat`，间隔 0.3 秒读两次 | `iostat`，其次 `top` | `iostat`，其次 `top` |
+| 温度 | thermal zone，其次 coretemp、k10temp、`sensors` | `osx-cpu-temp`，其次 `istats` | `macmon` |
+| 频率 | `/proc/cpuinfo`，其次 `scaling_cur_freq` | `sysctl hw.cpufrequency` | 按芯片世代查表得到的频率 |
+| 平均负载 | `/proc/loadavg` | `sysctl vm.loadavg` | `sysctl vm.loadavg` |
+| 核心数 | `/proc/cpuinfo` | `sysctl hw.ncpu` | `sysctl hw.ncpu` |
+| 调速器 | `scaling_governor` | 无 | 无 |
+| 最忙的进程 | `ps` | `ps` | `ps` |
+
+| 平台 | 温度工具 |
+|:-----|:---------|
 | macOS Apple Silicon | `brew install macmon`，无需 sudo 即可读取传感器 |
 | macOS Intel | `brew install osx-cpu-temp`，或 `gem install iStats` |
-| Linux | 大多数机器不需要；`sensors` 后备方案需要 `lm-sensors` |
+| Linux | 大多数机器不需要；使用 `sensors` 备用来源时安装 `lm-sensors` |
 
-主机没有数据源的数值显示为空。`osx-cpu-temp` 和 `istats` 在 Apple Silicon 上返回 `0.0`，插件将其视为没有读数。运行 `src/cpu.sh doctor` 可以查看本机提供了什么。
+缺少来源时，对应的占位符为空，`cpu-revamped doctor` 会指出是哪一个。`osx-cpu-temp` 和 `istats` 在 Apple Silicon 上返回 `0.0`，这被视为没有读数。
 
-<a id="installation"></a>
+### 安装
 
-## 安装
-
-### 使用 TPM
-
-把插件和占位符加入 `~/.tmux.conf`，然后按 `prefix + I`：
+使用 [TPM](https://github.com/tmux-plugins/tpm) 时，把插件加入 `~/.tmux.conf`，然后按 `prefix + I`：
 
 ```tmux
 set -g @plugin 'tmux-revamped/tmux-cpu-revamped'
-set -g status-right '#{cpu_icon} #{cpu_percentage} #{cpu_temp}'
 ```
 
-### 手动安装
+手动安装时，克隆仓库，并在 `~/.tmux.conf` 中运行入口脚本：
 
 ```bash
 git clone https://github.com/tmux-revamped/tmux-cpu-revamped ~/.tmux/plugins/tmux-cpu-revamped
 ```
 
-然后把这一行加到 `~/.tmux.conf` 中设置 `status-left` 和 `status-right` 的行之后，并重新加载 tmux：
-
 ```tmux
 run-shell ~/.tmux/plugins/tmux-cpu-revamped/cpu-revamped.tmux
 ```
 
-<a id="usage"></a>
+请在插件加载之前设置 `status-left` 或 `status-right`。插件只在加载时替换一次其中的占位符。
+
+在克隆的目录中运行 `make install`，还会把 `cpu-revamped` 放进 `~/.local/bin`，把它的 man 手册和补全放在 `~/.local/share` 下。
+
+### 验证
+
+```bash
+~/.tmux/plugins/tmux-cpu-revamped/bin/cpu-revamped doctor
+```
 
 ## 用法
 
-在 `status-left` 或 `status-right` 中写入占位符，插件加载时会替换它们。完整示例见 [`examples/status-right.tmux.conf`](examples/status-right.tmux.conf)。
-
-```tmux
-set -g status-right '#{cpu_graph} #{cpu_load_color}#{cpu_icon} #{cpu_percentage}#[default] #{cpu_temp} #{cpu_alert}'
-```
+本插件显示 CPU 的忙碌程度，以及温度、频率、平均负载、核心数、最近负载的图表、最忙的进程，在 Linux 上还有调速器。状态栏显示 tmux 已经保存的值，后台采样负责更新它。
 
 | 占位符 | 输出 |
-|:------------|:-------|
+|:-------|:-----|
 | `#{cpu_percentage}` | CPU 负载，例如 `42%` |
-| `#{cpu_icon}` | 当前负载档位的图标 |
-| `#{cpu_fg_color}`、`#{cpu_bg_color}` | 当前负载档位的颜色 |
-| `#{cpu_temp}` | 整数温度，例如 `54°C` |
-| `#{cpu_temp_icon}` | 当前温度档位的图标 |
-| `#{cpu_temp_fg_color}`、`#{cpu_temp_bg_color}` | 当前温度档位的颜色 |
-| `#{cpu_freq}` | 频率，例如 `4000MHz` |
-| `#{cpu_load}`、`#{cpu_load5}`、`#{cpu_load15}` | 1、5、15 分钟平均负载，例如 `1.23` |
+| `#{cpu_icon}` | 负载的档位图标 |
+| `#{cpu_fg_color}` | 负载档位的前景样式 |
+| `#{cpu_bg_color}` | 负载档位的背景样式 |
+| `#{cpu_temp}` | 整数度的温度，例如 `54°C` |
+| `#{cpu_temp_icon}` | 温度的档位图标 |
+| `#{cpu_temp_fg_color}` | 温度档位的前景样式 |
+| `#{cpu_temp_bg_color}` | 温度档位的背景样式 |
+| `#{cpu_freq}` | 以兆赫为单位的频率，例如 `4000MHz` |
+| `#{cpu_load}` | 一分钟平均负载，例如 `1.23` |
+| `#{cpu_load5}` | 五分钟平均负载 |
+| `#{cpu_load15}` | 十五分钟平均负载 |
 | `#{cpu_count}` | 逻辑 CPU 数 |
-| `#{cpu_graph}` | 最近的负载读数，例如 `▁▂▄▆█` |
-| `#{cpu_top_process}` | 最繁忙的进程，例如 `node 42%` |
-| `#{cpu_governor}` | Linux 调频策略，例如 `performance` |
-| `#{cpu_load_color}` | 按每核心 1 分钟平均负载判断的负载档位前景色 |
-| `#{cpu_alert}` | 负载或温度达到高阈值时为 `@cpu_revamped_alert_icon`，否则为空 |
+| `#{cpu_graph}` | 最近负载采样的迷你图，例如 `▁▂▄▆█` |
+| `#{cpu_top_process}` | 占用 CPU 最多的进程，例如 `node 42%` |
+| `#{cpu_governor}` | Linux 的频率调速器，例如 `performance`；在 macOS 上为空 |
+| `#{cpu_load_color}` | 按每核一分钟平均负载判断的负载档位前景样式 |
+| `#{cpu_alert}` | 负载或温度达到其高阈值时为 `@cpu_revamped_alert_icon`，否则为空 |
 
-<a id="configuration"></a>
-
-## 配置
-
-| 选项 | 默认值 | 含义 |
-|:-------|:--------|:--------|
-| `@cpu_revamped_interval` | `5` | 负载读数保持有效的秒数 |
-| `@cpu_revamped_detail_interval` | `60` | 温度、频率、平均负载、核心数、最繁忙进程和调频策略保持有效的秒数 |
-| `@cpu_revamped_render` | 空 | `options` 开启选项渲染模式，见[工作原理](#how-it-works) |
-| `@cpu_revamped_throttle_when_detached` | `0` | `1` 在没有客户端连接时停止采样 |
-| `@cpu_revamped_percentage_format` | `%s%%` | 负载的 printf 格式 |
-| `@cpu_revamped_medium_thresh`、`@cpu_revamped_high_thresh` | `30`、`80` | 中档和高档开始的负载百分比 |
-| `@cpu_revamped_low_icon` | `▰▱▱` | 低负载档的图标 |
-| `@cpu_revamped_medium_icon` | `▰▰▱` | 中负载档的图标 |
-| `@cpu_revamped_high_icon` | `▰▰▰` | 高负载档的图标 |
-| `@cpu_revamped_{low,medium,high}_{fg,bg}_color` | 空 | 每个负载档位的颜色 |
-| `@cpu_revamped_temp_unit` | `C` | `C` 或 `F` |
-| `@cpu_revamped_temp_format` | `%s°C` | 温度的 printf 格式；单位跟随 `@cpu_revamped_temp_unit` |
-| `@cpu_revamped_temp_medium_thresh`、`@cpu_revamped_temp_high_thresh` | `65`、`80` | 温度中档和高档开始的摄氏度数 |
-| `@cpu_revamped_temp_low_icon` | 空 | 低温档的图标 |
-| `@cpu_revamped_temp_medium_icon` | 空 | 中温档的图标 |
-| `@cpu_revamped_temp_high_icon` | 空 | 高温档的图标 |
-| `@cpu_revamped_temp_{low,medium,high}_{fg,bg}_color` | 空 | 每个温度档位的颜色 |
-| `@cpu_revamped_freq_format` | `%sMHz` | 频率的格式 |
-| `@cpu_revamped_load_format` | `%s` | 平均负载的格式 |
-| `@cpu_revamped_graph_width` | `20` | `#{cpu_graph}` 保留的读数个数 |
-| `@cpu_revamped_load_medium_ratio`、`@cpu_revamped_load_high_ratio` | `0.7`、`1.0` | `#{cpu_load_color}` 变为中档和高档的每核心负载 |
-| `@cpu_revamped_alert_icon` | `!` | `#{cpu_alert}` 的符号 |
-| `@cpu_revamped_icons` | `ascii` | `nerd` 为每个指标加上 Nerd Font 字形标签 |
-| `@cpu_revamped_<metric>_label` | 空 | 值不为空时显示在某个指标前的文字；`''` 去掉 `nerd` 标签 |
-| `@cpu_revamped_fixed_width` | `off` | `on` 在左侧填充每个值到其最大宽度 |
-| `@cpu_revamped_<metric>_width` | 空 | 某个指标的填充宽度，优先于固定宽度 |
-| `@cpu_revamped_popup_key` | `M-c` | 详情弹窗的 prefix 按键；`off` 不绑定 |
-| `@cpu_revamped_popup_command` | `btop`，其次 `htop`，再次 `top` | 弹窗中运行的命令；未安装的命令会在一条消息中指出 |
-| `@cpu_revamped_popup_width`、`@cpu_revamped_popup_height` | `80%`、`80%` | 弹窗大小 |
-
-标签适用于 `percentage`、`temp`、`freq`、`load`、`load5`、`load15`、`count`、`graph`、`top_process` 和 `governor`。宽度设置不会截断较长的值。
-
-### 主题配色
-
-颜色选项默认为空，因此在设置之前插件不添加颜色。下面每个配色把低、中、高三档分别设为绿色、黄色和红色：
-
-<details>
-<summary>Catppuccin Mocha</summary>
+在状态栏中放入占位符：
 
 ```tmux
-set -g @cpu_revamped_low_fg_color '#[fg=#a6e3a1]'
-set -g @cpu_revamped_medium_fg_color '#[fg=#f9e2af]'
-set -g @cpu_revamped_high_fg_color '#[fg=#f38ba8]'
-set -g @cpu_revamped_temp_low_fg_color '#[fg=#a6e3a1]'
-set -g @cpu_revamped_temp_medium_fg_color '#[fg=#f9e2af]'
-set -g @cpu_revamped_temp_high_fg_color '#[fg=#f38ba8]'
+set -g @cpu_revamped_low_fg_color '#[fg=green]'
+set -g @cpu_revamped_medium_fg_color '#[fg=yellow]'
+set -g @cpu_revamped_high_fg_color '#[fg=red]'
+
+set -g status-right '#{cpu_fg_color}#{cpu_icon} #{cpu_percentage}#[default] #{cpu_temp} '
 ```
 
-</details>
+同一个例子，加上几个选项，在 [examples/status-right.tmux.conf](examples/status-right.tmux.conf) 中。
 
-<details>
-<summary>Dracula</summary>
+### 标签和宽度
 
-```tmux
-set -g @cpu_revamped_low_fg_color '#[fg=#50fa7b]'
-set -g @cpu_revamped_medium_fg_color '#[fg=#f1fa8c]'
-set -g @cpu_revamped_high_fg_color '#[fg=#ff5555]'
-set -g @cpu_revamped_temp_low_fg_color '#[fg=#50fa7b]'
-set -g @cpu_revamped_temp_medium_fg_color '#[fg=#f1fa8c]'
-set -g @cpu_revamped_temp_high_fg_color '#[fg=#ff5555]'
-```
+`@cpu_revamped_<metric>_label` 在某个指标的值非空时，在它前面打印一个图标或词。`@cpu_revamped_icons` 设为 `nerd` 时，下面每个指标前都有 Nerd Font 字形标签。指标自己的标签优先于这组字形，设为空的标签表示默认值，所以字形保留。默认的 `ascii` 不加标签。
 
-</details>
+| 指标 | `nerd` 字形 |
+|:-----|:------------|
+| `percentage` | U+F029A |
+| `temp` | U+F050F |
+| `freq` | U+F04C5 |
+| `load` | U+F05D1 |
+| `load5` | U+F05D1 |
+| `load15` | U+F05D1 |
+| `count` | U+F061A |
+| `graph` | U+F07B1 |
+| `top_process` | U+F08C6 |
+| `governor` | U+F062E |
 
-<details>
-<summary>Nord</summary>
+`@cpu_revamped_fixed_width` 设为 `on` 时，每个数值在左侧补齐到其自然宽度：负载 4 个字符，温度和平均负载 5 个字符，频率 7 个字符，核心数 3 个字符，所以从 `9%` 变成 `42%` 不会让这一行的其余部分移位。`@cpu_revamped_<metric>_width` 设置某个指标的宽度，并优先于固定宽度。过长的值不会被截断。
 
-```tmux
-set -g @cpu_revamped_low_fg_color '#[fg=#a3be8c]'
-set -g @cpu_revamped_medium_fg_color '#[fg=#ebcb8b]'
-set -g @cpu_revamped_high_fg_color '#[fg=#bf616a]'
-set -g @cpu_revamped_temp_low_fg_color '#[fg=#a3be8c]'
-set -g @cpu_revamped_temp_medium_fg_color '#[fg=#ebcb8b]'
-set -g @cpu_revamped_temp_high_fg_color '#[fg=#bf616a]'
-```
+### 渲染模式
 
-</details>
-
-<details>
-<summary>Gruvbox Dark</summary>
-
-```tmux
-set -g @cpu_revamped_low_fg_color '#[fg=#b8bb26]'
-set -g @cpu_revamped_medium_fg_color '#[fg=#fabd2f]'
-set -g @cpu_revamped_high_fg_color '#[fg=#fb4934]'
-set -g @cpu_revamped_temp_low_fg_color '#[fg=#b8bb26]'
-set -g @cpu_revamped_temp_medium_fg_color '#[fg=#fabd2f]'
-set -g @cpu_revamped_temp_high_fg_color '#[fg=#fb4934]'
-```
-
-</details>
-
-<details>
-<summary>Tokyo Night</summary>
-
-```tmux
-set -g @cpu_revamped_low_fg_color '#[fg=#9ece6a]'
-set -g @cpu_revamped_medium_fg_color '#[fg=#e0af68]'
-set -g @cpu_revamped_high_fg_color '#[fg=#f7768e]'
-set -g @cpu_revamped_temp_low_fg_color '#[fg=#9ece6a]'
-set -g @cpu_revamped_temp_medium_fg_color '#[fg=#e0af68]'
-set -g @cpu_revamped_temp_high_fg_color '#[fg=#f7768e]'
-```
-
-</details>
-
-<details>
-<summary>Solarized Dark</summary>
-
-```tmux
-set -g @cpu_revamped_low_fg_color '#[fg=#859900]'
-set -g @cpu_revamped_medium_fg_color '#[fg=#b58900]'
-set -g @cpu_revamped_high_fg_color '#[fg=#dc322f]'
-set -g @cpu_revamped_temp_low_fg_color '#[fg=#859900]'
-set -g @cpu_revamped_temp_medium_fg_color '#[fg=#b58900]'
-set -g @cpu_revamped_temp_high_fg_color '#[fg=#dc322f]'
-```
-
-</details>
-
-### 内部状态
-
-以下选项由插件自己写入，请不要设置。
-
-| 选项 | 内容 |
-|:-------|:------|
-| `@cpu_revamped_published` | 加载时在 `status-left` 和 `status-right` 中找到的指标，即选项模式要发布的指标 |
-| `@cpu_revamped_out_<metric>` | 选项模式中每个指标发布的值 |
-| `@cpu_revamped_ticker_pid` | 选项模式后台进程的 pid |
-| `@cpu_revamped_option_names` | 后台进程每个周期用一次调用读取的选项 |
-| `@cpu_revamped_history` | `#{cpu_graph}` 所用的最近负载读数 |
-| `@cpu_revamped_{percent,temp,freq,load,load5,load15,count,top_process,governor}` | 缓存的读数，各带一个 `_ts` 时间戳，`percent` 另有 `_lock` |
-
-<a id="key-bindings"></a>
-
-## 快捷键
-
-| 按键 | 操作 | 选项 |
-|:----|:-------|:-------|
-| `prefix + M-c` | 打开运行 `@cpu_revamped_popup_command` 的弹窗 | `@cpu_revamped_popup_key` |
-
-在低于 3.2 的 tmux 上，该按键显示一条消息而不是弹窗。
-
-<a id="how-it-works"></a>
-
-## 工作原理
-
-在默认的作业模式中，每个占位符都会变成调用 [`src/cpu.sh`](src/cpu.sh) 的 `#()`。调用会立即输出缓存的值。当缓存的负载比 `@cpu_revamped_interval` 旧时，它还会启动一次后台刷新；刷新受锁保护，并行的调用不会再启动第二次。
-
-tmux 每次重绘状态栏都会运行所有 `#()`。一条状态栏上有多个插件时，大约每秒一次。选项模式去掉了这些调用：
+默认情况下，每个占位符变成一个 `#()` 调用，tmux 在状态栏重绘时重新运行它。把 `@cpu_revamped_render` 设为 `options` 后，每个占位符变成对选项的读取，例如 `#{E:@cpu_revamped_out_percentage}`。每个服务器随后有一个后台进程每隔 `@cpu_revamped_interval` 秒采样一次，并用一次 tmux 调用写入所有数值，所以它们一起变化。
 
 ```tmux
 set -g @cpu_revamped_render 'options'
 set -g @cpu_revamped_fixed_width 'on'
 ```
 
-此时每个占位符变成类似 `#{E:@cpu_revamped_out_percentage}` 的选项读取。每个服务器有一个后台进程，每 `@cpu_revamped_interval` 秒采样一次 CPU，用一次 tmux 调用写入状态栏用到的所有值，然后只重绘一次。服务器停止，或重新加载配置启动了接替的进程时，它就会退出。切回作业模式也会释放它。
+### 档位颜色
 
-最繁忙进程的名称在缓存前会把每个 `#` 加倍，因此名称像 tmux 格式的进程也只会显示为文字。
+档位样式默认为空，所以在你设置之前，`#{cpu_fg_color}`、`#{cpu_bg_color}`、`#{cpu_temp_fg_color}`、`#{cpu_temp_bg_color}` 和 `#{cpu_load_color}` 什么也不输出。下面的配色把 low 映射为绿色，medium 为黄色，high 为红色：
 
-<a id="development"></a>
+| 主题 | 低 | 中 | 高 |
+|:-----|:---|:---|:---|
+| Catppuccin Mocha | `#a6e3a1` | `#f9e2af` | `#f38ba8` |
+| Dracula | `#50fa7b` | `#f1fa8c` | `#ff5555` |
+| Nord | `#a3be8c` | `#ebcb8b` | `#bf616a` |
+| Gruvbox Dark | `#b8bb26` | `#fabd2f` | `#fb4934` |
+| Tokyo Night | `#9ece6a` | `#e0af68` | `#f7768e` |
+| Solarized Dark | `#859900` | `#b58900` | `#dc322f` |
+
+每个值写成一个样式，例如 `set -g @cpu_revamped_low_fg_color '#[fg=#a6e3a1]'`。温度档位用同样的样式，写在 `@cpu_revamped_temp_<tier>_fg_color` 下。
+
+| 命令 | 作用 |
+|:-----|:-----|
+| `cpu-revamped apply` | 绑定弹窗按键并立即填充占位符；tmux 加载插件时由入口脚本运行它 |
+| `cpu-revamped list` | 打印 `apply` 会发送的每条命令，不做任何更改；`--json` 打印一个对象 |
+| `cpu-revamped status NAME` | 打印一个占位符，例如 `percentage`、`temp` 或 `graph`；状态栏运行它 |
+| `cpu-revamped refresh` | 立即采样 CPU，并说明它有多忙 |
+| `cpu-revamped card` | 立即读取所有内容，每个数值打印一行 |
+| `cpu-revamped popup` | 在 tmux 弹窗中打开 CPU 监视器：弹窗命令，否则 btop，否则 htop，否则 top；弹窗按键运行它 |
+| `cpu-revamped daemon` | 在每个周期发布占位符，供 `options` 渲染模式使用；`apply` 会启动它 |
+| `cpu-revamped doctor` | 每个依赖一行：每个数值的来源工具或文件、弹窗打开的监视器，以及被放过的按键 |
+| `cpu-revamped version` | 版本，然后是 tmux 版本 |
+| `cpu-revamped help` | 帮助页；`man cpu-revamped` 记录同样的命令和设置 |
+| `cpu-revamped` | 在终端中显示菜单 |
+
+## 配置
+
+每个选项也是带连字符的命令选项，例如 `--interval 2`，以及环境变量，例如 `CPU_REVAMPED_INTERVAL`；命令行优先于环境变量，环境变量优先于 tmux 选项。空的 tmux 选项表示默认值。`doctor` 会指出持有插件不认识的值的设置。传给 `apply` 的选项会带到弹窗按键和每一次状态调用中。
+
+### 采样
+
+| 选项 | 默认值 | 含义 |
+|:-----|:-------|:-----|
+| `@cpu_revamped_interval` | `5` | 负载采样保持新鲜的秒数 |
+| `@cpu_revamped_detail_interval` | `60` | 温度、频率、平均负载、核心数、最忙的进程和调速器保持新鲜的秒数 |
+| `@cpu_revamped_throttle_when_detached` | `0` | `1` 表示没有客户端连接时停止采样；状态栏保留最后一次采样 |
+| `@cpu_revamped_render` | `jobs` | `options` 读取已发布的选项，而不是运行 `#()` 调用；其他任何值都表示 `jobs` |
+| `@cpu_revamped_graph_width` | `20` | `#{cpu_graph}` 保留的采样数 |
+
+### 档位和警报
+
+| 选项 | 默认值 | 含义 |
+|:-----|:-------|:-----|
+| `@cpu_revamped_medium_thresh` | `30` | 档位变为 medium 的负载百分比 |
+| `@cpu_revamped_high_thresh` | `80` | 档位变为 high 的负载百分比，也是 `#{cpu_alert}` 出现的百分比 |
+| `@cpu_revamped_low_icon` | `▰▱▱` | low 负载档位的图标 |
+| `@cpu_revamped_medium_icon` | `▰▰▱` | medium 负载档位的图标 |
+| `@cpu_revamped_high_icon` | `▰▰▰` | high 负载档位的图标 |
+| `@cpu_revamped_low_fg_color` | 空 | low 负载档位的前景样式，例如 `#[fg=green]` |
+| `@cpu_revamped_medium_fg_color` | 空 | medium 负载档位的前景样式 |
+| `@cpu_revamped_high_fg_color` | 空 | high 负载档位的前景样式 |
+| `@cpu_revamped_low_bg_color` | 空 | low 负载档位的背景样式 |
+| `@cpu_revamped_medium_bg_color` | 空 | medium 负载档位的背景样式 |
+| `@cpu_revamped_high_bg_color` | 空 | high 负载档位的背景样式 |
+| `@cpu_revamped_temp_medium_thresh` | `65` | 温度档位变为 medium 的摄氏度数 |
+| `@cpu_revamped_temp_high_thresh` | `80` | 温度档位变为 high 的摄氏度数，也是 `#{cpu_alert}` 出现的度数 |
+| `@cpu_revamped_temp_low_icon` | 空 | low 温度档位的图标 |
+| `@cpu_revamped_temp_medium_icon` | 空 | medium 温度档位的图标 |
+| `@cpu_revamped_temp_high_icon` | 空 | high 温度档位的图标 |
+| `@cpu_revamped_temp_low_fg_color` | 空 | low 温度档位的前景样式 |
+| `@cpu_revamped_temp_medium_fg_color` | 空 | medium 温度档位的前景样式 |
+| `@cpu_revamped_temp_high_fg_color` | 空 | high 温度档位的前景样式 |
+| `@cpu_revamped_temp_low_bg_color` | 空 | low 温度档位的背景样式 |
+| `@cpu_revamped_temp_medium_bg_color` | 空 | medium 温度档位的背景样式 |
+| `@cpu_revamped_temp_high_bg_color` | 空 | high 温度档位的背景样式 |
+| `@cpu_revamped_load_medium_ratio` | `0.7` | `#{cpu_load_color}` 变为 medium 的每核平均负载 |
+| `@cpu_revamped_load_high_ratio` | `1.0` | `#{cpu_load_color}` 变为 high 的每核平均负载 |
+| `@cpu_revamped_alert_icon` | `!` | `#{cpu_alert}` 打印的内容 |
+
+### 格式和标签
+
+| 选项 | 默认值 | 含义 |
+|:-----|:-------|:-----|
+| `@cpu_revamped_temp_unit` | `C` | `C` 或 `F` |
+| `@cpu_revamped_percentage_format` | `%s%%` | 负载的 printf 格式 |
+| `@cpu_revamped_temp_format` | `%s°C` | 温度的 printf 格式；单位跟随 `@cpu_revamped_temp_unit` |
+| `@cpu_revamped_freq_format` | `%sMHz` | 频率的 printf 格式 |
+| `@cpu_revamped_load_format` | `%s` | 三个平均负载的 printf 格式 |
+| `@cpu_revamped_icons` | `ascii` | `nerd` 为每个值加上 Nerd Font 字形标签 |
+| `@cpu_revamped_<metric>_label` | 空 | 在某个值前面打印的文字，仅当该值非空时 |
+| `@cpu_revamped_fixed_width` | `off` | `on` 把每个数值补齐到自然宽度，使 `9%` 变成 `42%` 时状态栏不会移位 |
+| `@cpu_revamped_<metric>_width` | 空 | 把某个值补齐到这么多个字符；过长的值不会被截断 |
+
+可以带标签和宽度的指标是 `percentage`、`temp`、`freq`、`load`、`load5`、`load15`、`count`、`graph`、`top_process` 和 `governor`。
+
+### 弹窗
+
+| 选项 | 默认值 | 含义 |
+|:-----|:-------|:-----|
+| `@cpu_revamped_popup_key` | `M-c` | 打开详情弹窗的前缀键；`off` 表示不绑定 |
+| `@cpu_revamped_popup_command` | 依次为 btop、htop、top | 弹窗运行的命令，可带参数；未安装的命令会在消息中点名 |
+| `@cpu_revamped_popup_width` | `80%` | 弹窗宽度 |
+| `@cpu_revamped_popup_height` | `80%` | 弹窗高度 |
+
+### 内部状态
+
+插件自己写入这些选项，不要设置它们。
+
+| 选项 | 保存的内容 |
+|:-----|:-----------|
+| `@cpu_revamped_published` | 状态栏使用的指标，在加载时记录，使 options 模式只写入这些 |
+| `@cpu_revamped_history` | `#{cpu_graph}` 背后的最近负载采样 |
+| `@cpu_revamped_out_<metric>` | options 模式下每个指标的渲染结果 |
+| `@cpu_revamped_ticker_pid` | options 模式后台进程的进程号 |
+| `@cpu_revamped_percent` 和其他数值、`_ts`、`_lock` | 保存的采样、每次读取的时间和刷新锁 |
+
+## 按键绑定
+
+| 按键 | 动作 | 默认 |
+|:-----|:-----|:-----|
+| `prefix + M-c` | 在弹窗中打开 CPU 监视器：你指定的命令，否则 btop，否则 htop，否则 top | 已绑定 |
+
+`@cpu_revamped_popup_key` 可指定另一个按键，`off` 表示不绑定。默认按键已被其他绑定占用时会被放过，`cpu-revamped doctor` 会说明。
+
+<a id="工作原理"></a>
+
+## 运作原理
+
+tmux 加载插件时，[`cpu-revamped.tmux`](cpu-revamped.tmux) 运行一次。它把 `status-left` 和 `status-right` 用到的指标记录在 `@cpu_revamped_published` 中，然后把每个占位符替换为对 [`bin/cpu-revamped`](bin/cpu-revamped) 的调用；在 `options` 模式下则替换为选项读取，并启动后台进程。
+
+在默认模式下，每个 `#()` 调用立即返回已保存的采样。采样比间隔旧时，调用会在后台启动刷新并加锁，所以同一时间只有一个刷新在运行。在 Linux 上，负载是间隔 0.3 秒读取两次 `/proc/stat` 得到的忙碌比例，iowait 算作空闲。在 macOS 上，负载是 100 减去 `iostat` 的空闲比例，缺少 `iostat` 时改用 `top`。一个 `awk` 把读数变成所有数值，一次 tmux 调用把它们保存。温度、频率、平均负载、最忙的进程和调速器的读取代价更高，所以只为状态栏用到的占位符、每隔 `@cpu_revamped_detail_interval` 秒读取一次。
+
+温度来自第一个有回应的来源：在 Linux 上依次是 thermal zone、coretemp、k10temp 和 `sensors`；在 Apple Silicon 上是 `macmon`，在 Mac 上之后是 `osx-cpu-temp` 和 `istats`。最忙进程的名称来自 `ps`，任何用户都能控制它，所以其中的每个 `#` 在到达状态栏之前都会加倍。读取、采样和格式化位于 [`lib/cpu.sh`](lib/cpu.sh)，设置表位于 [`lib/state.sh`](lib/state.sh)。
+
+<a id="界面"></a>
+
+## 界面
+
+<details>
+<summary>每个界面都在真实的 tmux 中用 <code>make screens</code> 录制，状态栏上显示每个按键</summary>
+<br>
+
+<table>
+<tr>
+<td width="50%" valign="top"><img src="screens/status.png" alt="cpu-revamped: 带档位图标和颜色的负载、温度、频率、平均负载和警报"><br><sub>带档位图标和颜色的负载、温度、频率、平均负载和警报, 来自 <code>hero.tape</code></sub></td>
+<td width="50%" valign="top"><img src="screens/popup.png" alt="cpu-revamped: prefix M-c 在弹窗中打开 CPU 监视器"><br><sub><code>prefix M-c</code> 在弹窗中打开 CPU 监视器, 来自 <code>hero.tape</code></sub></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><img src="screens/icons.png" alt="cpu-revamped: @cpu_revamped_icons 设为 nerd 时，每个指标前都有字形标签"><br><sub><code>@cpu_revamped_icons</code> 设为 <code>nerd</code> 时，每个指标前都有字形标签, 来自 <code>hero.tape</code></sub></td>
+<td width="50%" valign="top"><img src="screens/graph.png" alt="cpu-revamped: 图表、负载和最忙的进程"><br><sub>图表、负载和最忙的进程, 来自 <code>hero.tape</code></sub></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><img src="screens/options.png" alt="cpu-revamped: 在 options 渲染模式下，每个占位符读取一个 tmux 选项"><br><sub>在 <code>options</code> 渲染模式下，每个占位符读取一个 tmux 选项, 来自 <code>hero.tape</code></sub></td>
+<td width="50%" valign="top"><img src="screens/card.png" alt="cpu-revamped: card 打印每个数值"><br><sub><code>card</code> 打印每个数值, 来自 <code>features.tape</code></sub></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><img src="screens/temp.png" alt="cpu-revamped: 带档位图标和颜色的温度，以及警报"><br><sub>带档位图标和颜色的温度，以及警报, 来自 <code>features.tape</code></sub></td>
+<td width="50%" valign="top"><img src="screens/unit.png" alt="cpu-revamped: @cpu_revamped_temp_unit 设为 F"><br><sub><code>@cpu_revamped_temp_unit</code> 设为 <code>F</code>, 来自 <code>features.tape</code></sub></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><img src="screens/load.png" alt="cpu-revamped: 三个平均负载、核心数和负载颜色"><br><sub>三个平均负载、核心数和负载颜色, 来自 <code>features.tape</code></sub></td>
+<td width="50%" valign="top"><img src="screens/load-format.png" alt="cpu-revamped: @cpu_revamped_load_format 决定平均负载的格式"><br><sub><code>@cpu_revamped_load_format</code> 决定平均负载的格式, 来自 <code>features.tape</code></sub></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><img src="screens/ratios.png" alt="cpu-revamped: @cpu_revamped_load_medium_ratio 和 @cpu_revamped_load_high_ratio 移动负载颜色的分界"><br><sub><code>@cpu_revamped_load_medium_ratio</code> 和 <code>@cpu_revamped_load_high_ratio</code> 移动负载颜色的分界, 来自 <code>features.tape</code></sub></td>
+<td width="50%" valign="top"><img src="screens/clock.png" alt="cpu-revamped: 频率、调速器和最忙的进程"><br><sub>频率、调速器和最忙的进程, 来自 <code>features.tape</code></sub></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><img src="screens/freq-format.png" alt="cpu-revamped: @cpu_revamped_freq_format 决定频率的格式"><br><sub><code>@cpu_revamped_freq_format</code> 决定频率的格式, 来自 <code>features.tape</code></sub></td>
+<td width="50%" valign="top"><img src="screens/format.png" alt="cpu-revamped: @cpu_revamped_percentage_format 决定负载百分比的格式"><br><sub><code>@cpu_revamped_percentage_format</code> 决定负载百分比的格式, 来自 <code>features.tape</code></sub></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><img src="screens/fixed.png" alt="cpu-revamped: @cpu_revamped_fixed_width 把每个数值补齐到其自然宽度"><br><sub><code>@cpu_revamped_fixed_width</code> 把每个数值补齐到其自然宽度, 来自 <code>features.tape</code></sub></td>
+<td width="50%" valign="top"><img src="screens/width.png" alt="cpu-revamped: @cpu_revamped_count_width 把一个指标补齐到指定宽度"><br><sub><code>@cpu_revamped_count_width</code> 把一个指标补齐到指定宽度, 来自 <code>features.tape</code></sub></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><img src="screens/labels.png" alt="cpu-revamped: 某个指标前面的自定义标签"><br><sub>某个指标前面的自定义标签, 来自 <code>features.tape</code></sub></td>
+<td width="50%" valign="top"><img src="screens/tiers.png" alt="cpu-revamped: @cpu_revamped_medium_thresh 和 @cpu_revamped_high_thresh 移动档位的分界"><br><sub><code>@cpu_revamped_medium_thresh</code> 和 <code>@cpu_revamped_high_thresh</code> 移动档位的分界, 来自 <code>features.tape</code></sub></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><img src="screens/graph-width.png" alt="cpu-revamped: @cpu_revamped_graph_width 决定图表保留多少个采样"><br><sub><code>@cpu_revamped_graph_width</code> 决定图表保留多少个采样, 来自 <code>features.tape</code></sub></td>
+<td width="50%" valign="top"><img src="screens/popup-key.png" alt="cpu-revamped: @cpu_revamped_popup_key 为弹窗指定另一个按键"><br><sub><code>@cpu_revamped_popup_key</code> 为弹窗指定另一个按键, 来自 <code>features.tape</code></sub></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><img src="screens/popup-command.png" alt="cpu-revamped: @cpu_revamped_popup_command 指定弹窗运行的命令及其大小"><br><sub><code>@cpu_revamped_popup_command</code> 指定弹窗运行的命令及其大小, 来自 <code>features.tape</code></sub></td>
+<td width="50%" valign="top"><img src="screens/status-command.png" alt="cpu-revamped: status percentage 和 status graph 各打印一个占位符"><br><sub><code>status percentage</code> 和 <code>status graph</code> 各打印一个占位符, 来自 <code>stills.tape</code></sub></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><img src="screens/refresh.png" alt="cpu-revamped: refresh 立即采样 CPU"><br><sub><code>refresh</code> 立即采样 CPU, 来自 <code>stills.tape</code></sub></td>
+<td width="50%" valign="top"><img src="screens/list.png" alt="cpu-revamped: list 打印每个绑定"><br><sub><code>list</code> 打印每个绑定, 来自 <code>stills.tape</code></sub></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><img src="screens/json.png" alt="cpu-revamped: list --json 把同一份计划打印成一个对象"><br><sub><code>list --json</code> 把同一份计划打印成一个对象, 来自 <code>stills.tape</code></sub></td>
+<td width="50%" valign="top"><img src="screens/doctor.png" alt="cpu-revamped: doctor"><br><sub><code>doctor</code>, 来自 <code>stills.tape</code></sub></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><img src="screens/menu.png" alt="cpu-revamped: 菜单"><br><sub>菜单, 来自 <code>stills.tape</code></sub></td>
+<td width="50%" valign="top"><img src="screens/menu-card.png" alt="cpu-revamped: 从菜单打开的卡片"><br><sub>从菜单打开的卡片, 来自 <code>stills.tape</code></sub></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><img src="screens/accent.png" alt="cpu-revamped: 来自 CPU_REVAMPED_ACCENT 的强调色"><br><sub>来自 <code>CPU_REVAMPED_ACCENT</code> 的强调色, 来自 <code>stills.tape</code></sub></td>
+<td width="50%" valign="top"><img src="screens/plain-menu.png" alt="cpu-revamped: 没有 gum 的菜单"><br><sub>没有 gum 的菜单, 来自 <code>stills.tape</code></sub></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><img src="screens/plain-doctor.png" alt="cpu-revamped: 从菜单运行的 doctor，没有 gum"><br><sub>从菜单运行的 <code>doctor</code>，没有 gum, 来自 <code>stills.tape</code></sub></td>
+<td width="50%" valign="top"><img src="screens/plain-card.png" alt="cpu-revamped: 没有 gum 的 card"><br><sub>没有 gum 的 <code>card</code>, 来自 <code>stills.tape</code></sub></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><img src="screens/version.png" alt="cpu-revamped: 版本"><br><sub>版本, 来自 <code>stills.tape</code></sub></td>
+<td width="50%" valign="top"><img src="screens/error.png" alt="cpu-revamped: 未知命令"><br><sub>未知命令, 来自 <code>stills.tape</code></sub></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><img src="screens/themes.png" alt="cpu-revamped: 六种主题下的标题"><br><sub>六种主题下的标题, 来自 <code>themes.tape</code></sub></td>
+<td width="50%" valign="top"><img src="screens/help.png" alt="cpu-revamped: 帮助页"><br><sub>帮助页, 来自 <code>help.tape</code></sub></td>
+</tr>
+</table>
+
+录制运行的是真实的插件和 tmux。`iostat`、`sysctl`、`macmon`、`osx-cpu-temp`、`ps` 和 `top` 由小脚本代替，所以画面上的数值来自这些脚本。录制在 macOS 上进行，它没有调速器，所以 `#{cpu_governor}` 在那里什么也不显示。
+
+</details>
+
+## 可移植性
+
+插件是 POSIX `sh`。CI 在下面每一行上运行全部测试。
+
+| Shell | 状态 |
+|:------|:-------|
+| `dash`、macOS 上的 `/bin/sh` | 支持 |
+| `bash` 3.2 和 5.x、系统自带的 `zsh` 和 Homebrew 的 `zsh` | 支持 |
+
+| 系统 | 状态 |
+|:-------|:-------|
+| macOS | Apple Silicon 和 Intel 上的 Tahoe，使用系统自带的工具、Homebrew 的 GNU 工具和 Homebrew 的 uutils |
+| Linux | x86_64 和 arm64 上的 Ubuntu 26.04，使用 GNU coreutils、uutils 和 BusyBox |
 
 ## 开发
 
 | 命令 | 运行内容 |
 |:--------|:-------------|
-| `make test` | [`test/`](test) 下的 bats 测试 |
-| `make lint` | 对所有 shell 文件运行 shellcheck |
-| `make coverage` | 在 Linux 上用 kcov 统计行覆盖率，低于 95% 时失败 |
+| `make fmt` | 对每个脚本运行 shfmt `-i 2` |
+| `make lint` | shfmt、ShellCheck、mandoc、yamllint 和 actionlint，零告警 |
+| `make test` | 在系统 `sh` 下运行 bats 测试 |
+| `make test-all` | 在每个已安装的 shell 下运行测试，macOS 上包括 bash 和 zsh 的两种构建 |
+| `make test-linux` | 在 Ubuntu 容器中运行测试 |
+| `make coverage` | 在这台 Mac 和 Ubuntu 容器中运行 bashcov，合并后以 100% 为门槛 |
+| `make screens` | 用 VHS 在 tmux 中从真实插件录制上面的界面，在 macOS 上运行 |
+| `make install` | 把命令、man 手册和补全安装到 `PREFIX` 下 |
 
 在 macOS 上，运行 `brew bundle` 会根据 [`Brewfile`](Brewfile) 安装这些目标用到的所有工具。
 
-<a id="license"></a>
+提交遵循 Conventional Commits 格式，直接进入 `main`。`main` 上的 `ci` 通过后，`release.yml` 运行 semantic-release：自上一个标签以来的每个 `feat` 或 `fix` 都会发布新版本，更新版本常量，并把说明写进 [`CHANGELOG.md`](CHANGELOG.md)。
 
 ## 许可证
 

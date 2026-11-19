@@ -1,0 +1,3 @@
+$ cpu-revamped --frobnicate
+cpu-revamped: unknown option '--frobnicate'. run 'cpu-revamped help' for usage.
+exit 1
