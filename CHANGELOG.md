@@ -1,5 +1,12 @@
 # Changelog
 
+# [3.1.0](https://github.com/tmux-revamped/tmux-cpu-revamped/compare/v3.0.0...v3.1.0) (2026-11-20)
+
+
+### Features
+
+* add per-core bars, throttling and arrows ([2bfa589](https://github.com/tmux-revamped/tmux-cpu-revamped/commit/2bfa589f6e47c17e7c91544699dc008066925a1d))
+
 # [3.0.0](https://github.com/tmux-revamped/tmux-cpu-revamped/compare/v2.0.0...v3.0.0) (2026-11-19)
 
 
