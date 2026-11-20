@@ -63,10 +63,17 @@ load15_width
 count_width
 graph_width
 top_process_width
-governor_width'
-CPU_REVAMPED_NAMES='popup_key popup_width popup_height popup_command interval detail_interval throttle_when_detached render medium_thresh high_thresh temp_medium_thresh temp_high_thresh load_medium_ratio load_high_ratio low_icon medium_icon high_icon low_fg_color medium_fg_color high_fg_color low_bg_color medium_bg_color high_bg_color temp_low_icon temp_medium_icon temp_high_icon temp_low_fg_color temp_medium_fg_color temp_high_fg_color temp_low_bg_color temp_medium_bg_color temp_high_bg_color alert_icon temp_unit percentage_format temp_format freq_format load_format icons fixed_width percentage_label temp_label freq_label load_label load5_label load15_label count_label graph_label top_process_label governor_label percentage_width temp_width freq_width load_width load5_width load15_width count_width graph_width top_process_width governor_width'
-CPU_REVAMPED_CARRIED='popup_width popup_height popup_command interval detail_interval throttle_when_detached render medium_thresh high_thresh temp_medium_thresh temp_high_thresh load_medium_ratio load_high_ratio low_icon medium_icon high_icon low_fg_color medium_fg_color high_fg_color low_bg_color medium_bg_color high_bg_color temp_low_icon temp_medium_icon temp_high_icon temp_low_fg_color temp_medium_fg_color temp_high_fg_color temp_low_bg_color temp_medium_bg_color temp_high_bg_color alert_icon temp_unit percentage_format temp_format freq_format load_format icons fixed_width percentage_label temp_label freq_label load_label load5_label load15_label count_label graph_label top_process_label governor_label percentage_width temp_width freq_width load_width load5_width load15_width count_width graph_width top_process_width governor_width'
-CPU_REVAMPED_LIVE='percent temp freq load load5 load15 count top_process governor history percent_ts percent_lock percent_lock_ts temp_ts freq_ts load_ts top_process_ts governor_ts published'
+governor_width
+cores_label
+cores_width
+sep_left	
+sep_right	
+sep_bg	default
+throttle_icon	throttled
+notify	0'
+CPU_REVAMPED_NAMES='popup_key popup_width popup_height popup_command interval detail_interval throttle_when_detached render medium_thresh high_thresh temp_medium_thresh temp_high_thresh load_medium_ratio load_high_ratio low_icon medium_icon high_icon low_fg_color medium_fg_color high_fg_color low_bg_color medium_bg_color high_bg_color temp_low_icon temp_medium_icon temp_high_icon temp_low_fg_color temp_medium_fg_color temp_high_fg_color temp_low_bg_color temp_medium_bg_color temp_high_bg_color alert_icon temp_unit percentage_format temp_format freq_format load_format icons fixed_width percentage_label temp_label freq_label load_label load5_label load15_label count_label graph_label top_process_label governor_label percentage_width temp_width freq_width load_width load5_width load15_width count_width graph_width top_process_width governor_width cores_label cores_width sep_left sep_right sep_bg throttle_icon notify'
+CPU_REVAMPED_CARRIED='popup_width popup_height popup_command interval detail_interval throttle_when_detached render medium_thresh high_thresh temp_medium_thresh temp_high_thresh load_medium_ratio load_high_ratio low_icon medium_icon high_icon low_fg_color medium_fg_color high_fg_color low_bg_color medium_bg_color high_bg_color temp_low_icon temp_medium_icon temp_high_icon temp_low_fg_color temp_medium_fg_color temp_high_fg_color temp_low_bg_color temp_medium_bg_color temp_high_bg_color alert_icon temp_unit percentage_format temp_format freq_format load_format icons fixed_width percentage_label temp_label freq_label load_label load5_label load15_label count_label graph_label top_process_label governor_label percentage_width temp_width freq_width load_width load5_width load15_width count_width graph_width top_process_width governor_width cores_label cores_width sep_left sep_right sep_bg throttle_icon notify'
+CPU_REVAMPED_LIVE='percent temp freq load load5 load15 count top_process governor history percent_ts percent_lock percent_lock_ts temp_ts freq_ts load_ts top_process_ts governor_ts cores cores_stat cores_ts throttle throttle_count throttle_ts notified published'
 CPU_REVAMPED_S_popup_key='M-c'
 CPU_REVAMPED_S_popup_width='80%'
 CPU_REVAMPED_S_popup_height='80%'
@@ -127,6 +134,13 @@ CPU_REVAMPED_S_count_width=''
 CPU_REVAMPED_S_graph_width=''
 CPU_REVAMPED_S_top_process_width=''
 CPU_REVAMPED_S_governor_width=''
+CPU_REVAMPED_S_cores_label=''
+CPU_REVAMPED_S_cores_width=''
+CPU_REVAMPED_S_sep_left=''
+CPU_REVAMPED_S_sep_right=''
+CPU_REVAMPED_S_sep_bg='default'
+CPU_REVAMPED_S_throttle_icon='throttled'
+CPU_REVAMPED_S_notify='0'
 CPU_REVAMPED_S_percent=''
 CPU_REVAMPED_S_temp=''
 CPU_REVAMPED_S_freq=''
@@ -145,9 +159,16 @@ CPU_REVAMPED_S_freq_ts=''
 CPU_REVAMPED_S_load_ts=''
 CPU_REVAMPED_S_top_process_ts=''
 CPU_REVAMPED_S_governor_ts=''
+CPU_REVAMPED_S_cores=''
+CPU_REVAMPED_S_cores_stat=''
+CPU_REVAMPED_S_cores_ts=''
+CPU_REVAMPED_S_throttle=''
+CPU_REVAMPED_S_throttle_count=''
+CPU_REVAMPED_S_throttle_ts=''
+CPU_REVAMPED_S_notified=''
 CPU_REVAMPED_S_published=''
-CPU_REVAMPED_METRICS='percentage icon fg_color bg_color temp temp_icon temp_fg_color temp_bg_color freq load load5 load15 count graph top_process governor load_color alert'
-CPU_REVAMPED_LABELLED='percentage temp freq load load5 load15 count graph top_process governor'
+CPU_REVAMPED_METRICS='percentage icon fg_color bg_color temp temp_icon temp_fg_color temp_bg_color freq load load5 load15 count graph top_process governor load_color alert cores sep_left sep_right throttle'
+CPU_REVAMPED_LABELLED='percentage temp freq load load5 load15 count graph top_process governor cores'
 CPU_REVAMPED_DEFAULT_POPUP_KEY='M-c'
 CPU_REVAMPED_DEFAULT_INTERVAL=5
 CPU_REVAMPED_DEFAULT_DETAIL=60
@@ -161,6 +182,7 @@ CPU_REVAMPED_GRAPH_DIVISOR=101
 CPU_REVAMPED_POPUP_SINCE=3.2
 CPU_REVAMPED_NOTES_SINCE=3.1
 CPU_REVAMPED_SAMPLE=0.3
+CPU_REVAMPED_JXA='ObjC.import("Foundation");ObjC.bindFunction("mach_host_self",["unsigned int",[]]);ObjC.bindFunction("host_processor_info",["int",["unsigned int","int","unsigned int *","void **","unsigned int *"]]);var n=Ref(),p=Ref(),c=Ref(),o="";if($.host_processor_info($.mach_host_self(),2,n,p,c)===0){var d=$.NSData.dataWithBytesLength(p[0],c[0]*4);for(var i=0;i<n[0];i++){var h=ObjC.unwrap(d.subdataWithRange($.NSMakeRange(i*16,16)).description).split("0x")[1];var f=[];for(var k=0;k<4;k++){var s=h.substr(k*8,8);f.push(parseInt(s.substr(6,2)+s.substr(4,2)+s.substr(2,2)+s.substr(0,2),16))}o+="cpu"+i+" "+f[0]+" "+f[3]+" "+f[1]+" "+f[2]+"\n"}}o'
 CPU_REVAMPED_SYS=/sys
 CPU_REVAMPED_EMPTY='cpu-revamped-empty-argument'
 CPU_REVAMPED_MARK='cpu-revamped-section:'
@@ -200,6 +222,10 @@ CPU_REVAMPED_F_count=''
 CPU_REVAMPED_F_governor=''
 CPU_REVAMPED_F_top_process=''
 CPU_REVAMPED_F_history=''
+CPU_REVAMPED_F_cores=''
+CPU_REVAMPED_F_cores_stat=''
+CPU_REVAMPED_F_throttle=''
+CPU_REVAMPED_F_throttle_count=''
 REVAMPED_CACHE_PREFIX=cpu_revamped
 CPU_REVAMPED_KINDS='interval	number
 detail_interval	number
@@ -221,4 +247,6 @@ throttle_when_detached	0 1
 render	jobs options
 icons	ascii nerd
 fixed_width	on off
-temp_unit	C F'
+temp_unit	C F
+cores_width	number
+notify	0 1'

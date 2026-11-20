@@ -1,4 +1,4 @@
-.TH CPU-REVAMPED 1 "2026-11-19" "cpu-revamped" "User Commands"
+.TH CPU-REVAMPED 1 "2026-11-20" "cpu-revamped" "User Commands"
 .SH NAME
 cpu-revamped \- load, temperature and clock in the tmux status bar
 .SH SYNOPSIS
@@ -24,14 +24,15 @@ and replaces the placeholders #{cpu_percentage}, #{cpu_icon},
 #{cpu_fg_color}, #{cpu_bg_color}, #{cpu_temp}, #{cpu_temp_icon},
 #{cpu_temp_fg_color}, #{cpu_temp_bg_color}, #{cpu_freq}, #{cpu_load},
 #{cpu_load5}, #{cpu_load15}, #{cpu_count}, #{cpu_graph}, #{cpu_top_process},
-#{cpu_governor}, #{cpu_load_color} and #{cpu_alert} in status-left and
-status-right.
+#{cpu_governor}, #{cpu_load_color}, #{cpu_alert}, #{cpu_cores}, #{cpu_sep_left},
+#{cpu_sep_right} and #{cpu_throttle} in status-left and status-right.
 .PP
 A status call prints the stored sample at once. When the sample is older
 than the interval it starts one in the background, so the status line never
-waits. The temperature, the clock, the load averages, the busiest process
-and the governor are read only for a placeholder the status line uses, at
-the detail interval. Run with no command on a terminal, the tool offers a
+waits. The temperature, the clock, the load averages, the busiest process,
+the governor and the throttling flag are read only for a placeholder the
+status line uses, at the detail interval, and the per-core load at every
+sample. Run with no command on a terminal, the tool offers a
 menu.
 .PP
 On Linux the load is the busy share of two reads of /proc/stat taken 0.3
@@ -39,6 +40,24 @@ seconds apart, with iowait counted as idle. On macOS it is a hundred less
 the idle share of iostat, or of top when iostat is missing. The clock on
 Apple Silicon is looked up from the chip generation. #{cpu_governor} is
 empty on macOS, which has none.
+.PP
+#{cpu_cores} prints one bar per core, from the same eight bars as
+#{cpu_graph}, each the busy share of that core since the previous sample.
+Linux reads the cpuN lines of /proc/stat and keeps the counters in an option.
+macOS reads host_processor_info through JXA, run by osascript, and falls back
+to macmon. The first sample has no previous counters and prints nothing, and
+two samples in the same second keep the previous bars.
+.PP
+#{cpu_throttle} prints @cpu_revamped_throttle_icon while the CPU is held back.
+Linux counts it from a rise of any thermal_throttle count in sysfs since the
+previous sample. macOS counts it from pmset reporting a CPU speed limit under
+100 or a thermal warning level above nominal.
+.PP
+#{cpu_sep_left} and #{cpu_sep_right} print powerline arrows styled with the
+background of the load tier as their foreground, over
+@cpu_revamped_sep_bg.
+.PP
+An icon, a label or a text set to off prints nothing.
 .SH COMMANDS
 .TP
 .B apply
@@ -48,7 +67,7 @@ Bind the popup key and replace the status placeholders now. In the options rende
 Print every tmux command apply would send, one per line, and change nothing.
 .TP
 .B status
-Print one placeholder from the stored sample: percentage, icon, fg_color, bg_color, temp, temp_icon, temp_fg_color, temp_bg_color, freq, load, load5, load15, count, graph, top_process, governor, load_color or alert. The status line runs it, and it starts a sample in the background when the stored one is older than the interval.
+Print one placeholder from the stored sample: percentage, icon, fg_color, bg_color, temp, temp_icon, temp_fg_color, temp_bg_color, freq, load, load5, load15, count, graph, top_process, governor, load_color, alert, cores, sep_left, sep_right or throttle. The status line runs it, and it starts a sample in the background when the stored one is older than the interval.
 .TP
 .B refresh
 Sample the CPU now, read the details the status line uses, store the sample and say how much of the CPU is busy.
@@ -150,7 +169,7 @@ The command the popup runs, with its arguments. The default is btop, else htop, 
 Seconds a sample stays fresh before the CPU is read again. The default is 5.
 .TP
 .B @cpu_revamped_detail_interval
-Seconds the temperature, the clock, the load averages, the busiest process and the governor stay fresh. The default is 60.
+Seconds the temperature, the clock, the load averages, the busiest process, the governor and the throttling flag stay fresh. The default is 60.
 .TP
 .B @cpu_revamped_throttle_when_detached
 1 stops sampling while no client is attached; the status line keeps the last sample. The default is 0.
@@ -177,7 +196,7 @@ Load average per core at which #{cpu_load_color} becomes medium. The default is 
 Load average per core at which #{cpu_load_color} becomes high. The default is 1.0.
 .TP
 .B @cpu_revamped_low_icon
-What #{cpu_icon} prints in the low tier. The default is one bar of three.
+What #{cpu_icon} prints in the low tier. off prints nothing. The default is one bar of three.
 .TP
 .B @cpu_revamped_medium_icon
 What #{cpu_icon} prints in the medium tier. The default is two bars of three.
@@ -231,7 +250,22 @@ The style #{cpu_temp_bg_color} prints in the medium temperature tier. The defaul
 The style #{cpu_temp_bg_color} prints in the high temperature tier. The default is none.
 .TP
 .B @cpu_revamped_alert_icon
-What #{cpu_alert} prints while the load or the temperature is at its high threshold. The default is !.
+What #{cpu_alert} prints while the load or the temperature is at its high threshold. off prints nothing. The default is !.
+.TP
+.B @cpu_revamped_throttle_icon
+What #{cpu_throttle} prints while the CPU is held back. off prints nothing. The default is throttled.
+.TP
+.B @cpu_revamped_notify
+1 sends a desktop notification when throttling starts, once per episode and again only after it ended. It needs #{cpu_throttle} in the status line. The default is 0.
+.TP
+.B @cpu_revamped_sep_left
+What #{cpu_sep_left} prints. off prints nothing. The default is the left powerline arrow.
+.TP
+.B @cpu_revamped_sep_right
+What #{cpu_sep_right} prints. off prints nothing. The default is the right powerline arrow.
+.TP
+.B @cpu_revamped_sep_bg
+The background colour behind both arrows. The default is default.
 .TP
 .B @cpu_revamped_temp_unit
 C prints the temperature in Celsius, F in Fahrenheit. The default is C.
@@ -284,6 +318,9 @@ Text printed before the busiest process, only when the value is not empty. The d
 .B @cpu_revamped_governor_label
 Text printed before the governor, only when the value is not empty. The default is none.
 .TP
+.B @cpu_revamped_cores_label
+Text printed before the per-core bars, only when the value is not empty. The default is none.
+.TP
 .B @cpu_revamped_percentage_width
 Characters the load percent is padded to on the left. A longer value is never cut. The default is none.
 .TP
@@ -314,6 +351,9 @@ Characters the busiest process is padded to on the left. A longer value is never
 .B @cpu_revamped_governor_width
 Characters the governor is padded to on the left. A longer value is never cut. The default is none.
 .TP
+.B @cpu_revamped_cores_width
+Characters the per-core bars are padded to on the left. A longer value is never cut. The default is none.
+.TP
 .B @revamped_theme
 The theme of every tmux-revamped tool, when nothing else sets one. The default
 is
@@ -328,7 +368,12 @@ The stored sample lives in
 .BR _load15 ,
 .BR _count ,
 .BR _governor ,
-.BR _top_process
+.BR _top_process ,
+.BR _cores ,
+.BR _cores_stat ,
+.BR _throttle ,
+.BR _throttle_count ,
+.BR _notified
 and
 .BR _history ,
 with the time of each reading in options that end in _ts. apply records the

@@ -608,3 +608,265 @@ Screenshot popup-command.png
 Sleep 1s
 Ctrl+C
 Sleep 1500ms
+Hide
+Ctrl+]
+Sleep 300ms
+Type@5ms "tmux set -g status-right #{cpu_cores} #{cpu_percentage} "
+Enter
+Show
+Sleep 800ms
+Type "tmux set -g status-right '#{cpu_cores} #{cpu_percentage} '"
+Hide
+Ctrl+]
+Sleep 300ms
+Type@5ms "Enter"
+Enter
+Show
+Enter
+Sleep 1200ms
+Hide
+Ctrl+]
+Sleep 300ms
+Type@5ms "cpu-revamped apply"
+Enter
+Show
+Sleep 800ms
+Type "cpu-revamped apply"
+Hide
+Ctrl+]
+Sleep 300ms
+Type@5ms "Enter"
+Enter
+Show
+Enter
+Sleep 6s
+Screenshot cores.png
+Sleep 1s
+Hide
+Ctrl+B
+Type ":"
+Sleep 300ms
+Type "run-shell 'printf 0 >/Users/Shared/demo/phase'"
+Enter
+Sleep 500ms
+Hide
+Ctrl+]
+Sleep 300ms
+Type@5ms "tmux set -g @cpu_revamped_low_bg_color ##[bg=#ff00aa]"
+Enter
+Show
+Sleep 800ms
+Type "tmux set -g @cpu_revamped_low_bg_color '#[bg=#ff00aa]'"
+Hide
+Ctrl+]
+Sleep 300ms
+Type@5ms "Enter"
+Enter
+Show
+Enter
+Sleep 1200ms
+Hide
+Ctrl+]
+Sleep 300ms
+Type@5ms "tmux set -g @cpu_revamped_sep_bg #202020"
+Enter
+Show
+Sleep 800ms
+Type "tmux set -g @cpu_revamped_sep_bg '#202020'"
+Hide
+Ctrl+]
+Sleep 300ms
+Type@5ms "Enter"
+Enter
+Show
+Enter
+Sleep 1200ms
+Hide
+Ctrl+]
+Sleep 300ms
+Type@5ms "tmux set -g status-right #{cpu_sep_left}#{cpu_bg_color}#{cpu_percentage} #{cpu_cores}##[default]#{cpu_sep_right} "
+Enter
+Show
+Sleep 800ms
+Type "tmux set -g status-right '#{cpu_sep_left}#{cpu_bg_color}#{cpu_percentage} #{cpu_cores}#[default]#{cpu_sep_right} '"
+Hide
+Ctrl+]
+Sleep 300ms
+Type@5ms "Enter"
+Enter
+Show
+Enter
+Sleep 1200ms
+Hide
+Ctrl+]
+Sleep 300ms
+Type@5ms "cpu-revamped apply"
+Enter
+Show
+Sleep 800ms
+Type "cpu-revamped apply"
+Hide
+Ctrl+]
+Sleep 300ms
+Type@5ms "Enter"
+Enter
+Show
+Enter
+Sleep 3500ms
+Screenshot separators.png
+Sleep 1s
+Hide
+Ctrl+B
+Type ":"
+Sleep 300ms
+Type "run-shell 'rm -f /Users/Shared/demo/phase'"
+Enter
+Sleep 500ms
+Hide
+Ctrl+]
+Sleep 300ms
+Type@5ms "tmux set -g status-right #{cpu_throttle} #{cpu_percentage} "
+Enter
+Show
+Sleep 800ms
+Type "tmux set -g status-right '#{cpu_throttle} #{cpu_percentage} '"
+Hide
+Ctrl+]
+Sleep 300ms
+Type@5ms "Enter"
+Enter
+Show
+Enter
+Sleep 1200ms
+Hide
+Ctrl+]
+Sleep 300ms
+Type@5ms "cpu-revamped apply"
+Enter
+Show
+Sleep 800ms
+Type "cpu-revamped apply"
+Hide
+Ctrl+]
+Sleep 300ms
+Type@5ms "Enter"
+Enter
+Show
+Enter
+Sleep 1200ms
+Hide
+Ctrl+B
+Type ":"
+Sleep 300ms
+Type "run-shell 'printf 1 >/Users/Shared/demo/throttle'"
+Enter
+Sleep 500ms
+Show
+Sleep 7s
+Screenshot throttle.png
+Sleep 1s
+Hide
+Hide
+Ctrl+B
+Type ":"
+Sleep 300ms
+Type "run-shell 'rm -f /Users/Shared/demo/throttle'"
+Enter
+Sleep 500ms
+Hide
+Ctrl+B
+Type ":"
+Sleep 300ms
+Type "run-shell 'printf 3 >/Users/Shared/demo/phase'"
+Enter
+Sleep 500ms
+Hide
+Ctrl+]
+Sleep 300ms
+Type@5ms "tmux set -g status-right #{cpu_icon}#{cpu_percentage} #{cpu_temp_icon}#{cpu_temp} #{cpu_alert}| "
+Enter
+Show
+Sleep 800ms
+Type "tmux set -g status-right '#{cpu_icon}#{cpu_percentage} #{cpu_temp_icon}#{cpu_temp} #{cpu_alert}| '"
+Hide
+Ctrl+]
+Sleep 300ms
+Type@5ms "Enter"
+Enter
+Show
+Enter
+Sleep 1200ms
+Hide
+Ctrl+]
+Sleep 300ms
+Type@5ms "cpu-revamped apply"
+Enter
+Show
+Sleep 800ms
+Type "cpu-revamped apply"
+Hide
+Ctrl+]
+Sleep 300ms
+Type@5ms "Enter"
+Enter
+Show
+Enter
+Sleep 3500ms
+Sleep 1s
+Hide
+Ctrl+]
+Sleep 300ms
+Type@5ms "tmux set -g @cpu_revamped_high_icon off"
+Enter
+Show
+Sleep 800ms
+Type "tmux set -g @cpu_revamped_high_icon off"
+Hide
+Ctrl+]
+Sleep 300ms
+Type@5ms "Enter"
+Enter
+Show
+Enter
+Sleep 1200ms
+Hide
+Ctrl+]
+Sleep 300ms
+Type@5ms "tmux set -g @cpu_revamped_temp_high_icon off"
+Enter
+Show
+Sleep 800ms
+Type "tmux set -g @cpu_revamped_temp_high_icon off"
+Hide
+Ctrl+]
+Sleep 300ms
+Type@5ms "Enter"
+Enter
+Show
+Enter
+Sleep 1200ms
+Hide
+Ctrl+]
+Sleep 300ms
+Type@5ms "tmux set -g @cpu_revamped_alert_icon off"
+Enter
+Show
+Sleep 800ms
+Type "tmux set -g @cpu_revamped_alert_icon off"
+Hide
+Ctrl+]
+Sleep 300ms
+Type@5ms "Enter"
+Enter
+Show
+Enter
+Sleep 3500ms
+Screenshot off.png
+Sleep 1s
+Hide
+Ctrl+B
+Type ":"
+Sleep 300ms
+Type "run-shell 'rm -f /Users/Shared/demo/phase'"
+Enter
+Sleep 500ms

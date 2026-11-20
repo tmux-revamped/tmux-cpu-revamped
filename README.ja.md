@@ -31,7 +31,7 @@ $ cpu-revamped status percentage
 31%
 ```
 
-プレースホルダー **18** 個、描画モード **2** つ、macOS と Linux、tmux **3.2** 以降。
+プレースホルダー **22** 個、描画モード **2** つ、macOS と Linux、tmux **3.2** 以降。
 
 ---
 
@@ -56,6 +56,8 @@ Linux と macOS で、BSD、GNU、uutils、BusyBox のいずれのツールで�
 | コア数 | `/proc/cpuinfo` | `sysctl hw.ncpu` | `sysctl hw.ncpu` |
 | ガバナー | `scaling_governor` | なし | なし |
 | 最も忙しいプロセス | `ps` | `ps` | `ps` |
+| コアごとの負荷 | `/proc/stat` の `cpuN` 行をカウンターとして保存 | `osascript -l JavaScript` から `host_processor_info`、なければ `macmon` | `osascript -l JavaScript` から `host_processor_info`、なければ `macmon` |
+| スロットリング | sysfs の `thermal_throttle/*_throttle_count` | `pmset -g therm` | `pmset -g therm` |
 
 | プラットフォーム | 温度の取得ツール |
 |:-----------------|:-----------------|
@@ -117,6 +119,10 @@ run-shell ~/.tmux/plugins/tmux-cpu-revamped/cpu-revamped.tmux
 | `#{cpu_governor}` | Linux の周波数ガバナーで、たとえば`performance`です。macOS では空です |
 | `#{cpu_load_color}` | 1 分間のロードアベレージをコアあたりで判定した、負荷の段階の前景のスタイルです |
 | `#{cpu_alert}` | 負荷または温度が高いしきい値に達している間は`@cpu_revamped_alert_icon`、それ以外は空です |
+| `#{cpu_cores}` | コアごとに1本のバーで、たとえば`▂▄▇█`です。2回目の計測まで空です |
+| `#{cpu_sep_left}` | 負荷の段階の色で描いた、左向きのパワーラインの矢印です |
+| `#{cpu_sep_right}` | 負荷の段階の色で描いた、右向きのパワーラインの矢印です |
+| `#{cpu_throttle}` | CPUが抑制されている間は`@cpu_revamped_throttle_icon`、それ以外は空です |
 
 ステータスラインにプレースホルダーを置きます。
 
@@ -146,8 +152,25 @@ set -g status-right '#{cpu_fg_color}#{cpu_icon} #{cpu_percentage}#[default] #{cp
 | `graph` | U+F07B1 |
 | `top_process` | U+F08C6 |
 | `governor` | U+F062E |
+| `cores` | U+F0EE0 |
 
 `@cpu_revamped_fixed_width` を `on` にすると、各値を本来の幅、つまり負荷は 4 文字、温度とロードアベレージは 5 文字、クロックは 7 文字、コア数は 3 文字になるよう左から揃えるので、`9%` が `42%` に変わっても行の残りがずれません。`@cpu_revamped_<metric>_width` は 1 つの指標の幅を決め、固定幅より優先されます。長い値は切り詰めません。
+
+### コアごとのバー、区切り、スロットリング
+
+`#{cpu_cores}` は、`#{cpu_graph}` と同じ描き方でコアごとに 1 本のバーを表示します。各バーは、直前の計測からそのコアが使用中だった時間の割合です。最初の計測には比較する以前のカウンターがないため何も表示せず、同じ秒に 2 回計測しても直前のバーを保ちます。Linux は `/proc/stat` の `cpuN` 行のカウンターをオプションに保存します。macOS は `osascript` が実行する JXA で `host_processor_info` を読み、取得できなければ `macmon` を使います。どちらもない Mac ではバーは表示されず、`cpu-revamped doctor` がそれを表示します。
+
+`#{cpu_sep_left}` と `#{cpu_sep_right}` は、`@cpu_revamped_sep_left` と `@cpu_revamped_sep_right` のパワーラインの矢印を表示します。各矢印は、負荷の段階の背景色を前景色とし、`@cpu_revamped_sep_bg` の上に描かれるため、段階が変わるとセグメントの色に追従します。背景のスタイルがない段階では、矢印はスタイルなしで表示されます。
+
+```tmux
+set -g @cpu_revamped_low_bg_color '#[bg=#313244]'
+set -g @cpu_revamped_high_bg_color '#[bg=#585b70]'
+set -g status-right '#{cpu_sep_left}#{cpu_bg_color}#{cpu_percentage} #{cpu_cores}#[default]#{cpu_sep_right}'
+```
+
+`#{cpu_throttle}` は、CPU が抑制されている間 `@cpu_revamped_throttle_icon` を表示します。`@cpu_revamped_notify` を `1` にすると、スロットリングが始まったときにデスクトップ通知を 1 回送り、次の通知はそれが終わったあとだけです。通知にはステータスラインに `#{cpu_throttle}` が必要です。使われているプレースホルダーの分だけスロットリングの状態を読み取り、その間隔は `@cpu_revamped_detail_interval` 秒だからです。
+
+アイコン、ラベル、テキストを `off` にすると何も表示されません。対象は、段階のアイコン、`@cpu_revamped_alert_icon`、`@cpu_revamped_throttle_icon`、2 つの区切り、すべての `@cpu_revamped_<metric>_label` です。空のオプションは既定値を意味するため、隠す方法は `off` だけです。
 
 ### 描画モード
 
@@ -231,6 +254,16 @@ set -g @cpu_revamped_fixed_width 'on'
 | `@cpu_revamped_load_high_ratio` | `1.0` | `#{cpu_load_color}`がhighになる、コアあたりのロードアベレージです |
 | `@cpu_revamped_alert_icon` | `!` | `#{cpu_alert}`が表示するテキストです |
 
+### パワーラインとスロットリング
+
+| オプション | 既定値 | 意味 |
+|:--------|:--------|:--------|
+| `@cpu_revamped_sep_left` | U+E0B2 | `#{cpu_sep_left}`が表示するものです。`off`で何も表示しません |
+| `@cpu_revamped_sep_right` | U+E0B0 | `#{cpu_sep_right}`が表示するものです。`off`で何も表示しません |
+| `@cpu_revamped_sep_bg` | `default` | 2つの矢印の背後の背景色です |
+| `@cpu_revamped_throttle_icon` | `throttled` | CPUが抑制されている間`#{cpu_throttle}`が表示するものです。`off`で何も表示しません |
+| `@cpu_revamped_notify` | `0` | `1`でスロットリングが始まるとデスクトップ通知を送ります。1回の期間につき1回です |
+
 ### 書式とラベル
 
 | オプション | 既定値 | 意味 |
@@ -245,7 +278,7 @@ set -g @cpu_revamped_fixed_width 'on'
 | `@cpu_revamped_fixed_width` | `off` | `on`で各値を本来の幅に揃え、`9%`が`42%`に変わってもステータス行がずれないようにします |
 | `@cpu_revamped_<metric>_width` | 空 | 1つの値をこの文字数に揃えます。長い値は切り詰めません |
 
-ラベルと幅を持てる指標は、`percentage`、`temp`、`freq`、`load`、`load5`、`load15`、`count`、`graph`、`top_process`、`governor`です。
+ラベルと幅を持てる指標は、`percentage`、`temp`、`freq`、`load`、`load5`、`load15`、`count`、`graph`、`cores`、`top_process`、`governor`です。
 
 ### ポップアップ
 
@@ -264,6 +297,7 @@ set -g @cpu_revamped_fixed_width 'on'
 |:-----------|:-------------|
 | `@cpu_revamped_published` | ステータス行が使う指標で、オプションモードがそれだけを書き込むよう読み込み時に記録します |
 | `@cpu_revamped_history` | `#{cpu_graph}`のもとになる、最近の負荷の計測値です |
+| `@cpu_revamped_cores`、`_cores_stat`、`_throttle`、`_throttle_count`、`_notified` | コアごとの割合とカウンター、スロットリングの状態とそのカウント、現在の期間を通知したかどうかです |
 | `@cpu_revamped_out_<metric>` | オプションモードでの各指標の描画済みの値です |
 | `@cpu_revamped_ticker_pid` | オプションモードのバックグラウンドのプロセスのIDです |
 | `@cpu_revamped_percent` などの値、`_ts`、`_lock` | 保存した計測値、それぞれの読み取り時刻と更新ロック |
@@ -367,9 +401,17 @@ tmux がプラグインを読み込むと、[`cpu-revamped.tmux`](cpu-revamped.t
 <td width="50%" valign="top"><img src="screens/themes.png" alt="cpu-revamped: 6 つのテーマでのヘッダー"><br><sub>6 つのテーマでのヘッダー, より <code>themes.tape</code></sub></td>
 <td width="50%" valign="top"><img src="screens/help.png" alt="cpu-revamped: ヘルプ"><br><sub>ヘルプ, より <code>help.tape</code></sub></td>
 </tr>
+<tr>
+<td width="50%" valign="top"><img src="screens/cores.png" alt="cpu-revamped: #{cpu_cores}はコアごとに1本のバーを描きます"><br><sub><code>#{cpu_cores}</code>はコアごとに1本のバーを描きます, from <code>features.tape</code></sub></td>
+<td width="50%" valign="top"><img src="screens/separators.png" alt="cpu-revamped: #{cpu_sep_left}と#{cpu_sep_right}は負荷の段階の色になります"><br><sub><code>#{cpu_sep_left}</code>と<code>#{cpu_sep_right}</code>は負荷の段階の色になります, from <code>features.tape</code></sub></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><img src="screens/throttle.png" alt="cpu-revamped: #{cpu_throttle}はCPUが抑制されている間表示されます"><br><sub><code>#{cpu_throttle}</code>はCPUが抑制されている間表示されます, from <code>features.tape</code></sub></td>
+<td width="50%" valign="top"><img src="screens/off.png" alt="cpu-revamped: アイコン、ラベル、テキストをoffにすると何も表示されません"><br><sub>アイコン、ラベル、テキストを<code>off</code>にすると何も表示されません, from <code>features.tape</code></sub></td>
+</tr>
 </table>
 
-録画では実際のプラグインと tmux を動かしています。`iostat`、`sysctl`、`macmon`、`osx-cpu-temp`、`ps`、`top` は小さなスクリプトで代用しているため、画面上の数値はそれらのものです。録画は macOS で行うため、ガバナーがなく、`#{cpu_governor}` は何も表示しません。
+録画では実際のプラグインと tmux を動かしています。`iostat`、`sysctl`、`macmon`、`osx-cpu-temp`、`pmset`、`osascript`、`ps`、`top` は小さなスクリプトで代用しているため、画面上の数値はそれらのものです。録画は macOS で行うため、ガバナーがなく、`#{cpu_governor}` は何も表示しません。
 
 </details>
 

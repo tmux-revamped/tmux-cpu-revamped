@@ -24,7 +24,7 @@ setup() {
   fake_date
   fake_sleep
   linux
-  harness_hide vm_stat sysctl ps iostat top btop htop sensors macmon osx-cpu-temp istats
+  harness_hide vm_stat sysctl ps iostat top btop htop sensors macmon osx-cpu-temp istats osascript pmset notify-send
 }
 
 quiet() {
@@ -135,6 +135,7 @@ proc_file() {
 /proc/loadavg) name=loadavg ;;
 */cpufreq/scaling_cur_freq) name=scaling ;;
 */cpufreq/scaling_governor) name=governor ;;
+*/thermal_throttle/*_throttle_count) name=throttlecount ;;
 *) exec "'"${BATS_TEST_TMPDIR}"'/farm/cat" "$@" ;;
 esac
 printf "cat %s\n" "$1" >>"'"${FAKE}"'/asked"
@@ -216,6 +217,27 @@ hwmon_chip() {
 hwmon_input() {
   printf '%s\n' "$3" >"${SYS}/class/hwmon/hwmon$1/temp$2_input"
   [[ -z "${4:-}" ]] || printf '%s\n' "$4" >"${SYS}/class/hwmon/hwmon$1/temp$2_label"
+}
+
+throttle_count() {
+  mkdir -p "${SYS}/devices/system/cpu/cpu$1/thermal_throttle"
+  printf '%s\n' "$3" >"${SYS}/devices/system/cpu/cpu$1/thermal_throttle/$2_throttle_count"
+}
+
+jxa_says() {
+  printf '%s\n' "$1" >"${FAKE}/jxa.out"
+  quiet osascript 'case "$*" in
+"-l JavaScript -e "*) printf "jxa\n" >>"'"${FAKE}"'/jxa"; exec "'"${BATS_TEST_TMPDIR}"'/farm/cat" "'"${FAKE}"'/jxa.out" ;;
+*) printf "%s\n" "$*" >>"'"${FAKE}"'/notices" ;;
+esac'
+}
+
+notifier_says() {
+  quiet notify-send 'printf "%s\n" "$*" >>"'"${FAKE}"'/notices"'
+}
+
+notices() {
+  cat "${FAKE}/notices" 2>/dev/null || :
 }
 
 sampled() {

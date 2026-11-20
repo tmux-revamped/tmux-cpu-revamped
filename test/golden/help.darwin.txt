@@ -8,7 +8,8 @@ usage:
                               fg_color, bg_color, temp, temp_icon,
                               temp_fg_color, temp_bg_color, freq, load,
                               load5, load15, count, graph, top_process,
-                              governor, load_color or alert
+                              governor, load_color, alert, cores,
+                              sep_left, sep_right or throttle
   cpu-revamped refresh        sample the CPU now for the status line
   cpu-revamped card           print every figure as a table
   cpu-revamped popup          open a CPU monitor in a tmux popup
@@ -52,6 +53,17 @@ tiers:
   --load-high-ratio RATIO     load average per core that turns it high
   --alert-icon TEXT           what #{cpu_alert} prints while the load or
                               the temperature is high
+  --throttle-icon TEXT        what #{cpu_throttle} prints while the CPU is
+                              held back
+  --notify 0|1                1 sends a desktop notification when
+                              throttling starts, once per episode
+
+powerline:
+  --sep-left TEXT             what #{cpu_sep_left} prints, default the left
+                              arrow
+  --sep-right TEXT            what #{cpu_sep_right} prints, default the right
+                              arrow
+  --sep-bg STYLE              the colour behind the arrows, default default
 
 formats:
   --percentage-format FORMAT  printf format of the load percent
@@ -122,6 +134,16 @@ tmux options:
                                     style of #{cpu_temp_bg_color}
                                     (default none)
   @cpu_revamped_alert_icon          text of #{cpu_alert} (default !)
+  @cpu_revamped_throttle_icon       text of #{cpu_throttle}
+                                    (default throttled)
+  @cpu_revamped_notify              1 notifies once when throttling starts
+                                    (default 0)
+  @cpu_revamped_sep_left            text of #{cpu_sep_left} (default the
+                                    left powerline arrow)
+  @cpu_revamped_sep_right           text of #{cpu_sep_right} (default the
+                                    right powerline arrow)
+  @cpu_revamped_sep_bg              colour behind the arrows
+                                    (default default)
   @cpu_revamped_temp_unit           C or F (default C)
   @cpu_revamped_percentage_format   format of #{cpu_percentage}
                                     (default "%s%%")
@@ -140,14 +162,19 @@ tmux options:
 
 notes:
   A metric that takes a label and a width is percentage, temp, freq, load,
-  load5, load15, count, graph, top_process or governor, written with
-  dashes in an option, such as --top-process-label. The graph width is
-  also the number of samples the graph keeps.
+  load5, load15, count, graph, cores, top_process or governor, written
+  with dashes in an option, such as --top-process-label. The graph width
+  is also the number of samples the graph keeps. An icon, a label or a
+  text set to off prints nothing.
   The placeholders are #{cpu_<name>} for each name status takes. Each
   prints the stored sample at once, and starts one background sample when
   it is older than the interval. The temperature, the clock, the load
-  averages, the busiest process and the governor are read only for a
-  placeholder the status line uses. With --render options each
+  averages, the busiest process, the governor, the per-core load and
+  the throttling flag are read only for a placeholder the status line
+  uses. #{cpu_cores} prints one bar per core, from the change of the
+  counters since the previous sample, so the first sample prints
+  nothing. #{cpu_throttle} prints while the CPU is held back, and
+  --notify 1 needs it in the status line. With --render options each
   placeholder reads a tmux option that a background process fills on
   every tick, so a status refresh starts no process.
 

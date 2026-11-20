@@ -6,8 +6,10 @@ loadavg            warn     <path> cannot be read, so the load averages stay emp
 cpuinfo            warn     <path> cannot be read, so the core count stays empty
 governor           warn     no scaling governor is readable, so the governor stays empty
 sensors            warn     the temperature needs a thermal zone, coretemp, k10temp or sensors
+throttle           warn     no thermal_throttle counter is readable, so the throttling flag stays off
 ps                 warn     without it the busiest process stays empty
 monitor            warn     top is not installed, so the popup names it in a message
+notifier           warn     no osascript or notify-send, so notifications stay in the status line
 settings           ok       every option holds a value it knows
 keys               ok       every key it binds is free or its own
 gum                ok       <path>

@@ -78,7 +78,7 @@ steady() {
 @test "golden - doctor" {
   # Arrange
   local flow=doctor
-  harness_hide iostat sysctl ps top btop htop sensors macmon osx-cpu-temp istats
+  harness_hide iostat sysctl ps top btop htop sensors macmon osx-cpu-temp istats osascript pmset notify-send
   no_proc
 
   # Act

@@ -31,7 +31,7 @@ $ cpu-revamped status percentage
 31%
 ```
 
-**18** 個佔位符，**2** 種繪製模式，支援 macOS 和 Linux，需要 tmux **3.2** 或更新版本。
+**22** 個佔位符，**2** 種繪製模式，支援 macOS 和 Linux，需要 tmux **3.2** 或更新版本。
 
 ---
 
@@ -56,6 +56,8 @@ $ cpu-revamped status percentage
 | 核心數 | `/proc/cpuinfo` | `sysctl hw.ncpu` | `sysctl hw.ncpu` |
 | 調速器 | `scaling_governor` | 無 | 無 |
 | 最忙的進程 | `ps` | `ps` | `ps` |
+| 每核負載 | `/proc/stat` 的 `cpuN` 行，以計數器儲存 | `osascript -l JavaScript` 呼叫 `host_processor_info`，然後是 `macmon` | `osascript -l JavaScript` 呼叫 `host_processor_info`，然後是 `macmon` |
+| 降頻 | sysfs 中的 `thermal_throttle/*_throttle_count` | `pmset -g therm` | `pmset -g therm` |
 
 | 平台 | 溫度工具 |
 |:-----|:---------|
@@ -117,6 +119,10 @@ run-shell ~/.tmux/plugins/tmux-cpu-revamped/cpu-revamped.tmux
 | `#{cpu_governor}` | Linux 的頻率調速器，例如 `performance`；在 macOS 上為空 |
 | `#{cpu_load_color}` | 按每核一分鐘平均負載判斷的負載級別前景樣式 |
 | `#{cpu_alert}` | 負載或溫度達到其高閾值時為 `@cpu_revamped_alert_icon`，否則為空 |
+| `#{cpu_cores}` | 每個核心一根柱形，例如 `▂▄▇█`；第二次取樣前為空 |
+| `#{cpu_sep_left}` | 用負載級別顏色繪製的左向 powerline 箭咀 |
+| `#{cpu_sep_right}` | 用負載級別顏色繪製的右向 powerline 箭咀 |
+| `#{cpu_throttle}` | CPU 被壓制期間為 `@cpu_revamped_throttle_icon`，否則為空 |
 
 在狀態列中放入佔位符：
 
@@ -146,8 +152,25 @@ set -g status-right '#{cpu_fg_color}#{cpu_icon} #{cpu_percentage}#[default] #{cp
 | `graph` | U+F07B1 |
 | `top_process` | U+F08C6 |
 | `governor` | U+F062E |
+| `cores` | U+F0EE0 |
 
 `@cpu_revamped_fixed_width` 設為 `on` 時，每個數值在左側補齊到其自然闊度：負載 4 個字元，溫度和平均負載 5 個字元，頻率 7 個字元，核心數 3 個字元，所以由 `9%` 變成 `42%` 不會令這一行的其餘部分移位。`@cpu_revamped_<metric>_width` 設定某個指標的闊度，並優先於固定闊度。過長的值不會被截斷。
+
+### 每核柱形、分隔符和降頻
+
+`#{cpu_cores}` 按 `#{cpu_graph}` 的畫法為每個核心顯示一根柱形，每根柱形是該核心自上一次取樣以來處於忙碌的時間比例。第一次取樣沒有更早的計數器，甚麼也不顯示；同一秒內的兩次取樣保留上一次的柱形。Linux 把 `/proc/stat` 中 `cpuN` 行的計數器儲存在一個選項裏。macOS 透過 `osascript` 執行的 JXA 讀取 `host_processor_info`，讀不到時改用 `macmon`；兩者都沒有的 Mac 不顯示柱形，`cpu-revamped doctor` 會指出這一點。
+
+`#{cpu_sep_left}` 和 `#{cpu_sep_right}` 顯示 `@cpu_revamped_sep_left` 和 `@cpu_revamped_sep_right` 這兩個 powerline 箭咀。每個箭咀以負載級別的背景色作前景色，疊在 `@cpu_revamped_sep_bg` 之上，所以級別變化時箭咀會跟隨該段的顏色。沒有背景樣式的級別，箭咀不帶樣式。
+
+```tmux
+set -g @cpu_revamped_low_bg_color '#[bg=#313244]'
+set -g @cpu_revamped_high_bg_color '#[bg=#585b70]'
+set -g status-right '#{cpu_sep_left}#{cpu_bg_color}#{cpu_percentage} #{cpu_cores}#[default]#{cpu_sep_right}'
+```
+
+`#{cpu_throttle}` 在 CPU 被壓制期間顯示 `@cpu_revamped_throttle_icon`。把 `@cpu_revamped_notify` 設為 `1`，降頻開始時發送一次桌面通知，下一次要等降頻結束之後。通知需要狀態列裏有 `#{cpu_throttle}`，因為只有被使用的佔位符才會令插件讀取降頻狀態，讀取間隔是 `@cpu_revamped_detail_interval` 秒。
+
+圖示、標籤或文字設為 `off` 時甚麼也不顯示：各級別圖示、`@cpu_revamped_alert_icon`、`@cpu_revamped_throttle_icon`、兩個分隔符和每個 `@cpu_revamped_<metric>_label`。空選項表示預設值，所以隱藏它們只能用 `off`。
 
 ### 繪製模式
 
@@ -231,6 +254,16 @@ set -g @cpu_revamped_fixed_width 'on'
 | `@cpu_revamped_load_high_ratio` | `1.0` | `#{cpu_load_color}` 變為 high 的每核平均負載 |
 | `@cpu_revamped_alert_icon` | `!` | `#{cpu_alert}` 列印的內容 |
 
+### Powerline 和降頻
+
+| 選項 | 預設值 | 含義 |
+|:--------|:--------|:--------|
+| `@cpu_revamped_sep_left` | U+E0B2 | `#{cpu_sep_left}` 顯示的內容；`off` 甚麼也不顯示 |
+| `@cpu_revamped_sep_right` | U+E0B0 | `#{cpu_sep_right}` 顯示的內容；`off` 甚麼也不顯示 |
+| `@cpu_revamped_sep_bg` | `default` | 兩個箭咀後面的背景色 |
+| `@cpu_revamped_throttle_icon` | `throttled` | CPU 被壓制期間 `#{cpu_throttle}` 顯示的內容；`off` 甚麼也不顯示 |
+| `@cpu_revamped_notify` | `0` | `1` 在降頻開始時發送桌面通知，每段降頻一次 |
+
 ### 格式和標籤
 
 | 選項 | 預設值 | 含義 |
@@ -245,7 +278,7 @@ set -g @cpu_revamped_fixed_width 'on'
 | `@cpu_revamped_fixed_width` | `off` | `on` 把每個數值補齊到自然闊度，使 `9%` 變成 `42%` 時狀態列不會移位 |
 | `@cpu_revamped_<metric>_width` | 空 | 把某個值補齊到這麼多個字元；過長的值不會被截斷 |
 
-可以帶標籤和闊度的指標是 `percentage`、`temp`、`freq`、`load`、`load5`、`load15`、`count`、`graph`、`top_process` 和 `governor`。
+可以帶標籤和闊度的指標是 `percentage`、`temp`、`freq`、`load`、`load5`、`load15`、`count`、`graph`、`cores`、`top_process` 和 `governor`。
 
 ### 彈出視窗
 
@@ -264,6 +297,7 @@ set -g @cpu_revamped_fixed_width 'on'
 |:-----|:-----------|
 | `@cpu_revamped_published` | 狀態列使用的指標，在載入時記錄，使 options 模式只寫入這些 |
 | `@cpu_revamped_history` | `#{cpu_graph}` 背後的最近負載取樣 |
+| `@cpu_revamped_cores`、`_cores_stat`、`_throttle`、`_throttle_count`、`_notified` | 每核比例和計數器、降頻標記及其計數，以及當前這段降頻是否已通知 |
 | `@cpu_revamped_out_<metric>` | options 模式下每個指標的繪製結果 |
 | `@cpu_revamped_ticker_pid` | options 模式背景進程的進程號 |
 | `@cpu_revamped_percent` 和其他數值、`_ts`、`_lock` | 儲存的取樣、每次讀取的時間和更新鎖 |
@@ -367,9 +401,17 @@ tmux 載入插件時，[`cpu-revamped.tmux`](cpu-revamped.tmux) 執行一次。�
 <td width="50%" valign="top"><img src="screens/themes.png" alt="cpu-revamped: 六種主題下的標題"><br><sub>六種主題下的標題, 來自 <code>themes.tape</code></sub></td>
 <td width="50%" valign="top"><img src="screens/help.png" alt="cpu-revamped: 說明頁"><br><sub>說明頁, 來自 <code>help.tape</code></sub></td>
 </tr>
+<tr>
+<td width="50%" valign="top"><img src="screens/cores.png" alt="cpu-revamped: #{cpu_cores} 為每個核心畫一根柱形"><br><sub><code>#{cpu_cores}</code> 為每個核心畫一根柱形, from <code>features.tape</code></sub></td>
+<td width="50%" valign="top"><img src="screens/separators.png" alt="cpu-revamped: #{cpu_sep_left} 和 #{cpu_sep_right} 取負載級別的顏色"><br><sub><code>#{cpu_sep_left}</code> 和 <code>#{cpu_sep_right}</code> 取負載級別的顏色, from <code>features.tape</code></sub></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><img src="screens/throttle.png" alt="cpu-revamped: CPU 被壓制期間顯示 #{cpu_throttle}"><br><sub>CPU 被壓制期間顯示 <code>#{cpu_throttle}</code>, from <code>features.tape</code></sub></td>
+<td width="50%" valign="top"><img src="screens/off.png" alt="cpu-revamped: 圖示、標籤或文字設為 off 時甚麼也不顯示"><br><sub>圖示、標籤或文字設為 <code>off</code> 時甚麼也不顯示, from <code>features.tape</code></sub></td>
+</tr>
 </table>
 
-錄製時執行的是真實的插件和 tmux。`iostat`、`sysctl`、`macmon`、`osx-cpu-temp`、`ps` 和 `top` 由小腳本代替，所以畫面上的數值來自這些腳本。錄製在 macOS 上進行，它沒有調速器，所以 `#{cpu_governor}` 在那裏甚麼也不顯示。
+錄製時執行的是真實的插件和 tmux。`iostat`、`sysctl`、`macmon`、`osx-cpu-temp`、`pmset`、`osascript`、`ps` 和 `top` 由小腳本代替，所以畫面上的數值來自這些腳本。錄製在 macOS 上進行，它沒有調速器，所以 `#{cpu_governor}` 在那裏甚麼也不顯示。
 
 </details>
 

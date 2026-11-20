@@ -51,6 +51,11 @@ _cpu_revamped() {
     '--temp-medium-bg-color[background style of the medium temperature tier]:value:' \
     '--temp-high-bg-color[background style of the high temperature tier]:value:' \
     '--alert-icon[text of the alert]:value:' \
+    '--throttle-icon[text of the throttling flag]:value:' \
+    '--notify[1 notifies once when throttling starts]:value:(0 1)' \
+    '--sep-left[text of the left powerline arrow]:value:' \
+    '--sep-right[text of the right powerline arrow]:value:' \
+    '--sep-bg[colour behind the powerline arrows]:value:' \
     '--temp-unit[C or F]:value:(C F)' \
     '--percentage-format[printf format of the load percent]:value:' \
     '--temp-format[printf format of the temperature]:value:' \
@@ -68,6 +73,7 @@ _cpu_revamped() {
     '--graph-label[label before the graph]:value:' \
     '--top-process-label[label before the busiest process]:value:' \
     '--governor-label[label before the governor]:value:' \
+    '--cores-label[label before the per-core bars]:value:' \
     '--percentage-width[width of the load percent]:value:' \
     '--temp-width[width of the temperature]:value:' \
     '--freq-width[width of the clock]:value:' \
@@ -78,8 +84,9 @@ _cpu_revamped() {
     '--graph-width[width of the graph]:value:' \
     '--top-process-width[width of the busiest process]:value:' \
     '--governor-width[width of the governor]:value:' \
+    '--cores-width[width of the per-core bars]:value:' \
     '1:command:->command' \
-    '2:name:(percentage icon fg_color bg_color temp temp_icon temp_fg_color temp_bg_color freq load load5 load15 count graph top_process governor load_color alert)'
+    '2:name:(percentage icon fg_color bg_color temp temp_icon temp_fg_color temp_bg_color freq load load5 load15 count graph top_process governor load_color alert cores sep_left sep_right throttle)'
 
   if [[ "${state}" == command ]]; then
     _describe 'command' commands

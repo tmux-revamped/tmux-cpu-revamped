@@ -15,6 +15,8 @@ CPU_REVAMPED_CPU_LOADED=1
 . "${REVAMPED_LIB}/publish.sh"
 # shellcheck source=SCRIPTDIR/ticker.sh
 . "${REVAMPED_LIB}/ticker.sh"
+# shellcheck source=SCRIPTDIR/notify.sh
+. "${REVAMPED_LIB}/notify.sh"
 
 cpu_revamped_format() {
   printf '%s\n' "${CPU_REVAMPED_SETTINGS}" | awk -F '\t' -v live="${CPU_REVAMPED_LIVE}" '{ printf "%s#{@cpu_revamped_%s}", (NR > 1 ? "\t" : ""), $1 } END { count = split(live, name, " "); for (i = 1; i <= count; i++) { printf "\t#{@cpu_revamped_%s}", name[i] } }'
@@ -310,6 +312,42 @@ cpu_revamped_raw_percent() {
   fi
 }
 
+cpu_revamped_raw_cores() {
+  revamped_is_macos || return 0
+  cpu_revamped_raw_cores_text=""
+  if revamped_has_command osascript; then
+    cpu_revamped_raw_cores_text=$(osascript -l JavaScript -e "${CPU_REVAMPED_JXA}" 2>/dev/null) || cpu_revamped_raw_cores_text=""
+  fi
+  case "${cpu_revamped_raw_cores_text}" in
+  cpu0\ *) cpu_revamped_raw_add corestat "${cpu_revamped_raw_cores_text}" ;;
+  *)
+    if revamped_has_command macmon; then
+      cpu_revamped_raw_read coremon macmon pipe -s 1 -i 200
+    fi
+    ;;
+  esac
+}
+
+cpu_revamped_raw_throttle_files() {
+  cpu_revamped_raw_throttle_counts=""
+  for cpu_revamped_raw_throttle_file in "${CPU_REVAMPED_SYS}"/devices/system/cpu/cpu*/thermal_throttle/*_throttle_count; do
+    cpu_revamped_slurp "${cpu_revamped_raw_throttle_file}" || continue
+    case "${CPU_REVAMPED_LINE}" in
+    '' | *[!0-9]*) continue ;;
+    *) cpu_revamped_raw_throttle_counts="${cpu_revamped_raw_throttle_counts}${cpu_revamped_raw_throttle_counts:+ }${CPU_REVAMPED_LINE}" ;;
+    esac
+  done
+  cpu_revamped_raw_add throttle "${cpu_revamped_raw_throttle_counts}"
+}
+
+cpu_revamped_raw_throttle() {
+  if revamped_is_linux; then
+    cpu_revamped_raw_throttle_files
+  elif revamped_is_macos && revamped_has_command pmset; then
+    cpu_revamped_raw_read therm pmset -g therm
+  fi
+}
+
 cpu_revamped_raw_freq() {
   if revamped_is_apple_silicon; then
     cpu_revamped_raw_read brand sysctl -n machdep.cpu.brand_string
@@ -475,7 +513,7 @@ cpu_revamped_temp_read() {
 }
 
 cpu_revamped_figures() {
-  LC_ALL=C awk -v history="${CPU_REVAMPED_S_history}" -v keep="$1" -v mark="${CPU_REVAMPED_MARK}" '
+  LC_ALL=C awk -v history="${CPU_REVAMPED_S_history}" -v keep="$1" -v wantcores="$2" -v same="$3" -v share_old="${CPU_REVAMPED_S_cores}" -v share_prev="${CPU_REVAMPED_S_cores_stat}" -v throttle_prev="${CPU_REVAMPED_S_throttle_count}" -v mark="${CPU_REVAMPED_MARK}" '
     index($0, mark) == 1 { section = substr($0, length(mark) + 1); next }
     section ~ /^stat[12]$/ && $1 == "cpu" {
       total = 0
@@ -498,6 +536,33 @@ cpu_revamped_figures() {
     section == "vmloadavg" && NF >= 4 { one = $2; five = $3; fifteen = $4 }
     section == "loadavg" && NF >= 3 { one = $1; five = $2; fifteen = $3 }
     section == "governor" && governor == "" { governor = $1 }
+    (section == "stat2" || section == "corestat") && $1 ~ /^cpu[0-9]+$/ {
+      ncore++
+      busy_total = 0
+      for (i = 2; i <= NF; i++) { if ($i ~ /^[0-9]+$/) { busy_total += $i } }
+      core_total[ncore] = busy_total
+      core_idle[ncore] = $5 + $6
+    }
+    section == "coremon" && (at = index($0, "\"cpu_tiers\":[")) > 0 {
+      rest = substr($0, at + 12)
+      depth = 0
+      for (i = 1; i <= length(rest); i++) {
+        mark_char = substr(rest, i, 1)
+        if (mark_char == "[") { depth++ } else if (mark_char == "]") { depth--; if (depth == 0) { rest = substr(rest, 1, i); break } }
+      }
+      while ((at = index(rest, "\"core_id\"")) > 0) {
+        head = substr(rest, 1, at - 1)
+        if (match(head, /"active_ratio":[0-9.]+,$/)) { monitored[++nmon] = int(substr(head, RSTART + 15, RLENGTH - 16) * 100 + 0.5) }
+        rest = substr(rest, at + 9)
+      }
+    }
+    section == "throttle" && NF > 0 { throttle_now = $0; have_throttle = 1 }
+    section == "therm" && NF > 0 {
+      have_therm = 1
+      line = tolower($0)
+      if (line ~ /cpu_speed_limit/ && match(line, /[0-9]+[^0-9]*$/)) { if (substr(line, RSTART) + 0 < 100) { held = 1 } }
+      else if (line ~ /thermal/ && line ~ /level/ && match(line, /[0-9]+[^0-9]*$/)) { if (substr(line, RSTART) + 0 > 0) { held = 1 } }
+    }
     section == "ps" && NF >= 2 && $1 + 0 > most {
       most = $1 + 0
       holder = $2
@@ -529,7 +594,37 @@ cpu_revamped_figures() {
         if (holder ~ /^\//) { sub(/.*\//, "", holder) }
         top = int(most) " " holder
       }
-      printf "percent\t%s\nfreq\t%s\nload\t%s\nload5\t%s\nload15\t%s\ncount\t%s\ngovernor\t%s\nhistory\t%s\ntop_process\t%s\n", percent, freq, one, five, fifteen, count_figure, governor, history, top
+      share_out = ""
+      stat_out = ""
+      if (wantcores) {
+        if (nmon > 0) {
+          for (i = 1; i <= nmon; i++) { share_out = share_out (i > 1 ? " " : "") monitored[i] }
+        } else if (ncore > 0) {
+          for (i = 1; i <= ncore; i++) { stat_out = stat_out (i > 1 ? " " : "") core_total[i] ":" core_idle[i] }
+          if (same) {
+            share_out = share_old
+            stat_out = share_prev
+          } else if (split(share_prev, before, " ") == ncore) {
+            for (i = 1; i <= ncore; i++) {
+              split(before[i], pair, ":")
+              span = core_total[i] - pair[1]
+              waited = core_idle[i] - pair[2]
+              share = (span > 0 && waited >= 0) ? int((span - waited) / span * 100 + 0.5) : 0
+              share_out = share_out (i > 1 ? " " : "") share
+            }
+          }
+        }
+      }
+      throttle_out = ""
+      if (have_throttle) {
+        nprev = split(throttle_prev, was, " ")
+        nnow = split(throttle_now, is, " ")
+        throttle_out = 0
+        for (i = 1; i <= nnow; i++) { if (i <= nprev && is[i] + 0 > was[i] + 0) { throttle_out = 1 } }
+      } else if (have_therm) {
+        throttle_out = held + 0
+      }
+      printf "percent\t%s\nfreq\t%s\nload\t%s\nload5\t%s\nload15\t%s\ncount\t%s\ngovernor\t%s\nhistory\t%s\ntop_process\t%s\ncores\t%s\ncores_stat\t%s\nthrottle\t%s\nthrottle_count\t%s\n", percent, freq, one, five, fifteen, count_figure, governor, history, top, share_out, stat_out, throttle_out, throttle_now
     }
   '
 }
@@ -537,9 +632,13 @@ cpu_revamped_figures() {
 cpu_revamped_measure() {
   CPU_REVAMPED_F_percent="" CPU_REVAMPED_F_freq="" CPU_REVAMPED_F_load="" CPU_REVAMPED_F_load5="" CPU_REVAMPED_F_load15=""
   CPU_REVAMPED_F_count="" CPU_REVAMPED_F_governor="" CPU_REVAMPED_F_history="" CPU_REVAMPED_F_top_process=""
+  CPU_REVAMPED_F_cores="" CPU_REVAMPED_F_cores_stat="" CPU_REVAMPED_F_throttle="" CPU_REVAMPED_F_throttle_count=""
   cpu_revamped_number "${CPU_REVAMPED_S_graph_width}" "${CPU_REVAMPED_DEFAULT_GRAPH}"
   [ "${CPU_REVAMPED_NUMBER}" -gt 0 ] || CPU_REVAMPED_NUMBER="${CPU_REVAMPED_DEFAULT_GRAPH}"
-  cpu_revamped_measure_rows=$(printf '%s\n' "${CPU_REVAMPED_RAW}" | cpu_revamped_figures "${CPU_REVAMPED_NUMBER}") || cpu_revamped_measure_rows=""
+  cpu_revamped_measure_cores=0 cpu_revamped_measure_same=0
+  ! cpu_revamped_kept cores || cpu_revamped_measure_cores=1
+  [ "${CPU_REVAMPED_S_cores_ts}" != "${CPU_REVAMPED_NOW}" ] || cpu_revamped_measure_same=1
+  cpu_revamped_measure_rows=$(printf '%s\n' "${CPU_REVAMPED_RAW}" | cpu_revamped_figures "${CPU_REVAMPED_NUMBER}" "${cpu_revamped_measure_cores}" "${cpu_revamped_measure_same}") || cpu_revamped_measure_rows=""
   while IFS='	' read -r cpu_revamped_measure_name cpu_revamped_measure_value; do
     [ -n "${cpu_revamped_measure_name}" ] || continue
     IFS= read -r "CPU_REVAMPED_F_${cpu_revamped_measure_name}" <<EOF
@@ -596,6 +695,14 @@ cpu_revamped_gather() {
     CPU_REVAMPED_DUE="${CPU_REVAMPED_DUE} governor"
     cpu_revamped_raw_governor
   fi
+  if cpu_revamped_wanted cores; then
+    CPU_REVAMPED_DUE="${CPU_REVAMPED_DUE} cores"
+    cpu_revamped_raw_cores
+  fi
+  if cpu_revamped_due "${CPU_REVAMPED_S_throttle_ts}" throttle; then
+    CPU_REVAMPED_DUE="${CPU_REVAMPED_DUE} throttle"
+    cpu_revamped_raw_throttle
+  fi
 }
 
 cpu_revamped_keep() {
@@ -625,6 +732,30 @@ cpu_revamped_keep() {
     cpu_revamped_store governor "${CPU_REVAMPED_F_governor}"
     cpu_revamped_store governor_ts "${CPU_REVAMPED_NOW}"
   fi
+  if cpu_revamped_kept cores; then
+    cpu_revamped_store cores "${CPU_REVAMPED_F_cores}"
+    cpu_revamped_store cores_stat "${CPU_REVAMPED_F_cores_stat}"
+    cpu_revamped_store cores_ts "${CPU_REVAMPED_NOW}"
+  fi
+  if cpu_revamped_kept throttle; then
+    cpu_revamped_store throttle "${CPU_REVAMPED_F_throttle}"
+    cpu_revamped_store throttle_count "${CPU_REVAMPED_F_throttle_count}"
+    cpu_revamped_store throttle_ts "${CPU_REVAMPED_NOW}"
+  fi
+}
+
+cpu_revamped_alert() {
+  [ "${CPU_REVAMPED_S_notify}" = 1 ] || return 0
+  cpu_revamped_kept throttle || return 0
+  case "${CPU_REVAMPED_F_throttle}:${CPU_REVAMPED_S_notified}" in
+  1:1) return 0 ;;
+  1:*)
+    cpu_revamped_store notified 1
+    revamped_notify_send "CPU throttled" "The CPU is running below its full speed."
+    ;;
+  0:1) cpu_revamped_store notified 0 ;;
+  *) return 0 ;;
+  esac
 }
 
 cpu_revamped_sample() {
@@ -635,6 +766,7 @@ cpu_revamped_sample() {
   cpu_revamped_gather
   cpu_revamped_measure
   cpu_revamped_keep
+  cpu_revamped_alert
 }
 
 cpu_revamped_refresh() {
@@ -781,30 +913,64 @@ cpu_revamped_value_top() {
   CPU_REVAMPED_OUT="${CPU_REVAMPED_DOUBLED} ${CPU_REVAMPED_S_top_process%% *}%"
 }
 
-cpu_revamped_value_graph() {
+cpu_revamped_bars() {
   CPU_REVAMPED_OUT=""
-  cpu_revamped_value_graph_rest="${CPU_REVAMPED_S_history}" cpu_revamped_value_graph_bytes=""
-  while [ -n "${cpu_revamped_value_graph_rest}" ]; do
-    cpu_revamped_value_graph_item="${cpu_revamped_value_graph_rest%% *}"
-    cpu_revamped_value_graph_rest="${cpu_revamped_value_graph_rest#"${cpu_revamped_value_graph_item}"}"
-    cpu_revamped_value_graph_rest="${cpu_revamped_value_graph_rest# }"
-    cpu_revamped_number "${cpu_revamped_value_graph_item%%.*}" 0
+  cpu_revamped_bars_rest="$1" cpu_revamped_bars_bytes=""
+  while [ -n "${cpu_revamped_bars_rest}" ]; do
+    cpu_revamped_bars_item="${cpu_revamped_bars_rest%% *}"
+    cpu_revamped_bars_rest="${cpu_revamped_bars_rest#"${cpu_revamped_bars_item}"}"
+    cpu_revamped_bars_rest="${cpu_revamped_bars_rest# }"
+    cpu_revamped_number "${cpu_revamped_bars_item%%.*}" 0
     [ "${CPU_REVAMPED_NUMBER}" -le 100 ] || CPU_REVAMPED_NUMBER=100
-    cpu_revamped_value_graph_step=$((CPU_REVAMPED_NUMBER * CPU_REVAMPED_GRAPH_STEPS / CPU_REVAMPED_GRAPH_DIVISOR))
+    cpu_revamped_bars_step=$((CPU_REVAMPED_NUMBER * CPU_REVAMPED_GRAPH_STEPS / CPU_REVAMPED_GRAPH_DIVISOR))
     set -- 201 202 203 204 205 206 207 210
-    shift "${cpu_revamped_value_graph_step}"
-    cpu_revamped_value_graph_bytes="${cpu_revamped_value_graph_bytes}\\0342\\0226\\0$1"
+    shift "${cpu_revamped_bars_step}"
+    cpu_revamped_bars_bytes="${cpu_revamped_bars_bytes}\\0342\\0226\\0$1"
   done
-  [ -n "${cpu_revamped_value_graph_bytes}" ] || return 0
-  CPU_REVAMPED_OUT=$(printf '%b' "${cpu_revamped_value_graph_bytes}")
+  [ -n "${cpu_revamped_bars_bytes}" ] || return 0
+  CPU_REVAMPED_OUT=$(printf '%b' "${cpu_revamped_bars_bytes}")
+}
+
+cpu_revamped_value_graph() {
+  cpu_revamped_bars "${CPU_REVAMPED_S_history}"
+}
+
+cpu_revamped_off() {
+  [ "${CPU_REVAMPED_OUT}" != off ] || CPU_REVAMPED_OUT=""
+}
+
+cpu_revamped_value_sep() {
+  cpu_revamped_value_tiered bg_color "${CPU_REVAMPED_S_percent}"
+  cpu_revamped_value_sep_style="${CPU_REVAMPED_OUT}"
+  CPU_REVAMPED_OUT="$1"
+  cpu_revamped_off
+  [ -n "${CPU_REVAMPED_OUT}" ] || return 0
+  cpu_revamped_value_sep_rest="${cpu_revamped_value_sep_style#*bg=}"
+  [ "${cpu_revamped_value_sep_rest}" != "${cpu_revamped_value_sep_style}" ] || return 0
+  CPU_REVAMPED_OUT="#[fg=${cpu_revamped_value_sep_rest%%[],]*},bg=${CPU_REVAMPED_S_sep_bg}]${CPU_REVAMPED_OUT}#[default]"
+}
+
+cpu_revamped_value_throttle() {
+  CPU_REVAMPED_OUT=""
+  [ "${CPU_REVAMPED_S_throttle}" = 1 ] || return 0
+  CPU_REVAMPED_OUT="${CPU_REVAMPED_S_throttle_icon}"
+  cpu_revamped_off
 }
 
 cpu_revamped_value() {
   case "$1" in
   percentage) cpu_revamped_value_shaped "${CPU_REVAMPED_S_percentage_format}" "${CPU_REVAMPED_S_percent}" ;;
-  icon | fg_color | bg_color) cpu_revamped_value_tiered "$1" "${CPU_REVAMPED_S_percent}" ;;
+  icon)
+    cpu_revamped_value_tiered icon "${CPU_REVAMPED_S_percent}"
+    cpu_revamped_off
+    ;;
+  fg_color | bg_color) cpu_revamped_value_tiered "$1" "${CPU_REVAMPED_S_percent}" ;;
   temp) cpu_revamped_value_temp ;;
-  temp_icon | temp_fg_color | temp_bg_color) cpu_revamped_value_temp_style "${1#temp_}" ;;
+  temp_icon)
+    cpu_revamped_value_temp_style icon
+    cpu_revamped_off
+    ;;
+  temp_fg_color | temp_bg_color) cpu_revamped_value_temp_style "${1#temp_}" ;;
   freq) cpu_revamped_value_freq ;;
   load) cpu_revamped_value_shaped "${CPU_REVAMPED_S_load_format}" "${CPU_REVAMPED_S_load}" ;;
   load5) cpu_revamped_value_shaped "${CPU_REVAMPED_S_load_format}" "${CPU_REVAMPED_S_load5}" ;;
@@ -813,7 +979,14 @@ cpu_revamped_value() {
   graph) cpu_revamped_value_graph ;;
   top_process) cpu_revamped_value_top ;;
   load_color) cpu_revamped_value_load_color ;;
-  alert) cpu_revamped_value_alert ;;
+  alert)
+    cpu_revamped_value_alert
+    cpu_revamped_off
+    ;;
+  cores) cpu_revamped_bars "${CPU_REVAMPED_S_cores}" ;;
+  sep_left) cpu_revamped_value_sep "${CPU_REVAMPED_S_sep_left}" ;;
+  sep_right) cpu_revamped_value_sep "${CPU_REVAMPED_S_sep_right}" ;;
+  throttle) cpu_revamped_value_throttle ;;
   *) CPU_REVAMPED_OUT="${CPU_REVAMPED_S_governor}" ;;
   esac
 }
@@ -830,6 +1003,7 @@ cpu_revamped_own() {
   count) CPU_REVAMPED_LABEL="${CPU_REVAMPED_S_count_label}" CPU_REVAMPED_WIDTH="${CPU_REVAMPED_S_count_width}" CPU_REVAMPED_GLYPH='\0363\0260\0230\0232' CPU_REVAMPED_NATURAL=3 ;;
   graph) CPU_REVAMPED_LABEL="${CPU_REVAMPED_S_graph_label}" CPU_REVAMPED_WIDTH="${CPU_REVAMPED_S_graph_width}" CPU_REVAMPED_GLYPH='\0363\0260\0236\0261' ;;
   top_process) CPU_REVAMPED_LABEL="${CPU_REVAMPED_S_top_process_label}" CPU_REVAMPED_WIDTH="${CPU_REVAMPED_S_top_process_width}" CPU_REVAMPED_GLYPH='\0363\0260\0243\0206' ;;
+  cores) CPU_REVAMPED_LABEL="${CPU_REVAMPED_S_cores_label}" CPU_REVAMPED_WIDTH="${CPU_REVAMPED_S_cores_width}" CPU_REVAMPED_GLYPH='\0363\0260\0273\0240' ;;
   *) CPU_REVAMPED_LABEL="${CPU_REVAMPED_S_governor_label}" CPU_REVAMPED_WIDTH="${CPU_REVAMPED_S_governor_width}" CPU_REVAMPED_GLYPH='\0363\0260\0230\0256' ;;
   esac
 }
@@ -847,6 +1021,10 @@ cpu_revamped_pad() {
 }
 
 cpu_revamped_label() {
+  if [ "${CPU_REVAMPED_LABEL}" = off ]; then
+    CPU_REVAMPED_LABEL=""
+    return 0
+  fi
   [ -z "${CPU_REVAMPED_LABEL}" ] || return 0
   [ "${CPU_REVAMPED_S_icons}" = nerd ] || return 0
   CPU_REVAMPED_LABEL=$(printf '%b' "${CPU_REVAMPED_GLYPH}")

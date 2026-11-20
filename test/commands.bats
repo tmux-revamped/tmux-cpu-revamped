@@ -33,7 +33,7 @@ everything() {
 
   # Assert
   [[ "${status}" -eq 1 ]]
-  [[ "${output}" == "cpu-revamped: status must be percentage, icon, fg_color, bg_color, temp, temp_icon, temp_fg_color, temp_bg_color, freq, load, load5, load15, count, graph, top_process, governor, load_color or alert, got: free" ]]
+  [[ "${output}" == "cpu-revamped: status must be percentage, icon, fg_color, bg_color, temp, temp_icon, temp_fg_color, temp_bg_color, freq, load, load5, load15, count, graph, top_process, governor, load_color, alert, cores, sep_left, sep_right or throttle, got: free" ]]
 }
 
 @test "commands - refresh samples the CPU now and says how much is busy" {
@@ -498,4 +498,97 @@ STUB
   # Assert
   run grep '^settings' <<<"${output}"
   [[ "${output}" == "settings           warn     unknown values: render=both temp_unit=K graph_width=lots" ]]
+}
+
+@test "commands - status prints the new placeholders" {
+  # Arrange
+  sampled 42 1000000
+  option cores "0 100"
+  option throttle 1
+  option medium_bg_color '#[bg=red]'
+
+  # Act
+  tool status cores
+  [[ "${output}" == $'\xe2\x96\x81\xe2\x96\x88' ]]
+  tool status throttle
+  [[ "${output}" == "throttled" ]]
+  tool --sep-left '<' --sep-bg black status sep_left
+
+  # Assert
+  [[ "${output}" == "#[fg=red,bg=black]<#[default]" ]]
+}
+
+@test "commands - notify takes only 0 or 1, from the command line and from the environment" {
+  # Arrange
+  tool --notify 2 status percentage
+  [[ "${status}" -eq 1 ]]
+  [[ "${output}" == "cpu-revamped: --notify must be 0 or 1, got: 2" ]]
+  export CPU_REVAMPED_NOTIFY=yes
+
+  # Act
+  tool status percentage
+
+  # Assert
+  [[ "${status}" -eq 1 ]]
+  [[ "${output}" == "cpu-revamped: --notify must be 0 or 1, got: yes" ]]
+}
+
+@test "commands - doctor names a notify and a cores width it does not know" {
+  # Arrange
+  option notify maybe
+  option cores_width wide
+
+  # Act
+  tool doctor
+
+  # Assert
+  run grep '^settings' <<<"${output}"
+  [[ "${output}" == "settings           warn     unknown values: cores_width=wide notify=maybe" ]]
+}
+
+@test "commands - on Linux doctor names the throttle counter it reads, and warns when none can be read" {
+  # Arrange
+  local counter='throttle +ok +.*thermal_throttle/.*_throttle_count, counts the throttling events' none='throttle +warn +no thermal_throttle counter is readable'
+  linux_host
+  tool doctor
+  [[ "${output}" =~ ${none} ]]
+  proc_file throttlecount 5
+
+  # Act
+  tool doctor
+
+  # Assert
+  [[ "${output}" =~ ${counter} ]]
+}
+
+@test "commands - on macOS doctor names the source of the per-core bars and pmset" {
+  # Arrange
+  local jxa='osascript +ok +.*/osascript, reads the per-core load through JXA' mon='cores +ok +macmon reads the per-core load' none='cores +warn +without osascript or macmon the per-core bars stay empty' pmset='pmset +ok +.*/pmset, reads the thermal limit' nopmset='pmset +warn +without it the throttling flag stays off'
+  macos
+  tool doctor
+  [[ "${output}" =~ ${none} ]]
+  [[ "${output}" =~ ${nopmset} ]]
+  says macmon ""
+  tool doctor
+  [[ "${output}" =~ ${mon} ]]
+  says pmset ""
+  jxa_says ""
+
+  # Act
+  tool doctor
+
+  # Assert
+  [[ "${output}" =~ ${jxa} ]]
+  [[ "${output}" =~ ${pmset} ]]
+}
+
+@test "commands - doctor names the notifier" {
+  # Arrange
+  notifier_says
+
+  # Act
+  tool doctor
+
+  # Assert
+  [[ "${output}" =~ notifier\ +ok\ +notify-send ]]
 }

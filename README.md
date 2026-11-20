@@ -31,7 +31,7 @@ $ cpu-revamped status percentage
 31%
 ```
 
-**18** placeholders, **2** render modes, macOS and Linux, tmux **3.2** or later.
+**22** placeholders, **2** render modes, macOS and Linux, tmux **3.2** or later.
 
 ---
 
@@ -56,6 +56,8 @@ It runs on Linux and macOS with BSD, GNU, uutils or BusyBox tools. Each figure c
 | Core count | `/proc/cpuinfo` | `sysctl hw.ncpu` | `sysctl hw.ncpu` |
 | Governor | `scaling_governor` | none | none |
 | Busiest process | `ps` | `ps` | `ps` |
+| Per-core load | `cpuN` lines of `/proc/stat`, kept as counters | `osascript -l JavaScript` calling `host_processor_info`, then `macmon` | the same |
+| Throttling | `thermal_throttle/*_throttle_count` in sysfs | `pmset -g therm` | `pmset -g therm` |
 
 | Platform | Temperature helper |
 |:---------|:-------------------|
@@ -117,6 +119,10 @@ The plugin shows how busy the CPU is, with its temperature, clock, load averages
 | `#{cpu_governor}` | The Linux frequency governor, for example `performance`; empty on macOS |
 | `#{cpu_load_color}` | Foreground style of the load tier judged by the one minute load average per core |
 | `#{cpu_alert}` | `@cpu_revamped_alert_icon` while the load or the temperature is at its high threshold, empty otherwise |
+| `#{cpu_cores}` | One bar per core, for example `▂▄▇█`; empty until a second sample |
+| `#{cpu_sep_left}` | The left powerline arrow in the colour of the load tier |
+| `#{cpu_sep_right}` | The right powerline arrow in the colour of the load tier |
+| `#{cpu_throttle}` | `@cpu_revamped_throttle_icon` while the CPU is held back, empty otherwise |
 
 Put placeholders in the status line:
 
@@ -146,8 +152,25 @@ The same example, with a few more options, is in [examples/status-right.tmux.con
 | `graph` | U+F07B1 |
 | `top_process` | U+F08C6 |
 | `governor` | U+F062E |
+| `cores` | U+F0EE0 |
 
 `@cpu_revamped_fixed_width` set to `on` pads each figure on the left to its natural width, four characters for the load, five for the temperature and the load averages, seven for the clock and three for the core count, so a change from `9%` to `42%` does not shift the rest of the line. `@cpu_revamped_<metric>_width` sets one metric's width and wins over the fixed width. A longer value is never cut.
+
+### Per-core bars, separators and throttling
+
+`#{cpu_cores}` prints one bar per core, drawn like `#{cpu_graph}`, each bar the share of that core's time spent busy since the previous sample. The first sample has no earlier counters and prints nothing, and two samples in the same second keep the previous bars. Linux keeps the counters of the `cpuN` lines of `/proc/stat` in an option. macOS reads `host_processor_info` through JXA, run by `osascript`, and falls back to `macmon`; a Mac with neither shows no bars, and `cpu-revamped doctor` says so.
+
+`#{cpu_sep_left}` and `#{cpu_sep_right}` print the powerline arrows `@cpu_revamped_sep_left` and `@cpu_revamped_sep_right`. Each arrow takes the background of the load tier as its foreground, over `@cpu_revamped_sep_bg`, so it follows the segment's colour as the tier changes. A tier with no background style prints the arrow unstyled.
+
+```tmux
+set -g @cpu_revamped_low_bg_color '#[bg=#313244]'
+set -g @cpu_revamped_high_bg_color '#[bg=#585b70]'
+set -g status-right '#{cpu_sep_left}#{cpu_bg_color}#{cpu_percentage} #{cpu_cores}#[default]#{cpu_sep_right}'
+```
+
+`#{cpu_throttle}` prints `@cpu_revamped_throttle_icon` while the CPU is held back. `@cpu_revamped_notify` set to `1` sends one desktop notification when throttling starts, and the next only after it ended. Notifications need `#{cpu_throttle}` in the status line, because only a placeholder in use makes the plugin read the throttling state, which it does every `@cpu_revamped_detail_interval` seconds.
+
+An icon, a label or a text set to `off` prints nothing: the tier icons, `@cpu_revamped_alert_icon`, `@cpu_revamped_throttle_icon`, both separators and every `@cpu_revamped_<metric>_label`. An empty option means its default, so `off` is the one way to hide them.
 
 ### Render mode
 
@@ -231,6 +254,16 @@ Every option is also a command option with dashes, such as `--interval 2`, and a
 | `@cpu_revamped_load_high_ratio` | `1.0` | Load average per core at which `#{cpu_load_color}` becomes high |
 | `@cpu_revamped_alert_icon` | `!` | What `#{cpu_alert}` prints |
 
+### Powerline and throttling
+
+| Option | Default | Meaning |
+|:--------|:--------|:--------|
+| `@cpu_revamped_sep_left` | U+E0B2 | What `#{cpu_sep_left}` prints; `off` prints nothing |
+| `@cpu_revamped_sep_right` | U+E0B0 | What `#{cpu_sep_right}` prints; `off` prints nothing |
+| `@cpu_revamped_sep_bg` | `default` | Background colour behind both arrows |
+| `@cpu_revamped_throttle_icon` | `throttled` | What `#{cpu_throttle}` prints while the CPU is held back; `off` prints nothing |
+| `@cpu_revamped_notify` | `0` | `1` sends a desktop notification when throttling starts, once per episode |
+
 ### Formats and labels
 
 | Option | Default | Meaning |
@@ -245,7 +278,7 @@ Every option is also a command option with dashes, such as `--interval 2`, and a
 | `@cpu_revamped_fixed_width` | `off` | `on` pads each figure to its natural width, so a change from `9%` to `42%` does not shift the status line |
 | `@cpu_revamped_<metric>_width` | empty | Pad one value to this many characters. A longer value is never cut |
 
-A metric that takes a label and a width is `percentage`, `temp`, `freq`, `load`, `load5`, `load15`, `count`, `graph`, `top_process` or `governor`.
+A metric that takes a label and a width is `percentage`, `temp`, `freq`, `load`, `load5`, `load15`, `count`, `graph`, `cores`, `top_process` or `governor`.
 
 ### Popup
 
@@ -264,6 +297,7 @@ The plugin writes these options itself. Do not set them.
 |:-------|:------|
 | `@cpu_revamped_published` | The metrics the status line uses, recorded at load so options mode writes only those |
 | `@cpu_revamped_history` | The recent load samples behind `#{cpu_graph}` |
+| `@cpu_revamped_cores`, `_cores_stat`, `_throttle`, `_throttle_count`, `_notified` | The per-core shares and counters, the throttling flag and its counts, and whether the current episode was notified |
 | `@cpu_revamped_out_<metric>` | The rendered value of each metric in options mode |
 | `@cpu_revamped_ticker_pid` | The process id of the options-mode background process |
 | `@cpu_revamped_percent` and the other figures, `_ts`, `_lock` | The stored sample, the time of each reading and the refresh lock |
@@ -367,9 +401,17 @@ The temperature comes from the first source that answers: thermal zones, coretem
 <td width="50%" valign="top"><img src="screens/themes.png" alt="cpu-revamped: The header in six themes"><br><sub>The header in six themes, from <code>themes.tape</code></sub></td>
 <td width="50%" valign="top"><img src="screens/help.png" alt="cpu-revamped: The help page"><br><sub>The help page, from <code>help.tape</code></sub></td>
 </tr>
+<tr>
+<td width="50%" valign="top"><img src="screens/cores.png" alt="cpu-revamped: #{cpu_cores} draws one bar per core"><br><sub><code>#{cpu_cores}</code> draws one bar per core, from <code>features.tape</code></sub></td>
+<td width="50%" valign="top"><img src="screens/separators.png" alt="cpu-revamped: #{cpu_sep_left} and #{cpu_sep_right} take the colour of the load tier"><br><sub><code>#{cpu_sep_left}</code> and <code>#{cpu_sep_right}</code> take the colour of the load tier, from <code>features.tape</code></sub></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><img src="screens/throttle.png" alt="cpu-revamped: #{cpu_throttle} shows while the CPU is held back"><br><sub><code>#{cpu_throttle}</code> shows while the CPU is held back, from <code>features.tape</code></sub></td>
+<td width="50%" valign="top"><img src="screens/off.png" alt="cpu-revamped: A label, an icon or a text set to off prints nothing"><br><sub>A label, an icon or a text set to <code>off</code> prints nothing, from <code>features.tape</code></sub></td>
+</tr>
 </table>
 
-The recordings run the real plugin and tmux. Small scripts stand in for `iostat`, `sysctl`, `macmon`, `osx-cpu-temp`, `ps` and `top`, so the figures on screen are theirs. The recordings run on macOS, which has no governor, so `#{cpu_governor}` shows nothing there.
+The recordings run the real plugin and tmux. Small scripts stand in for `iostat`, `sysctl`, `macmon`, `osx-cpu-temp`, `pmset`, `osascript`, `ps` and `top`, so the figures on screen are theirs. The recordings run on macOS, which has no governor, so `#{cpu_governor}` shows nothing there.
 
 </details>
 

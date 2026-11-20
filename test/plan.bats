@@ -405,3 +405,18 @@ settled() {
   # Assert
   [[ "${lines[0]}" == *"cpu-revamped' --percentage-format '%%s%%%% used' status percentage)" ]]
 }
+
+@test "plan - the new placeholders have their jobs and are recorded in the order of the metrics" {
+  # Arrange
+  local tool
+  tool=$(tool_path)
+  option popup_key off
+  var status-right '#{cpu_throttle}#{cpu_sep_left}#{cpu_cores}#{cpu_sep_right}'
+
+  # Act
+  planned
+
+  # Assert
+  [[ "${lines[0]}" == "set-option -gq status-right #(${tool} status throttle)#(${tool} status sep_left)#(${tool} status cores)#(${tool} status sep_right)" ]]
+  [[ "${lines[1]}" == "set-option -gq @cpu_revamped_published cores sep_left sep_right throttle" ]]
+}

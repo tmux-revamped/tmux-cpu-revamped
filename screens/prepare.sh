@@ -88,4 +88,28 @@ while :; do
 done
 MONITOR
 
-chmod +x "${demo}/bin/iostat" "${demo}/bin/sysctl" "${demo}/bin/macmon" "${demo}/bin/osx-cpu-temp" "${demo}/bin/ps" "${demo}/bin/top"
+cat >"${demo}/bin/osascript" <<'CORES'
+#!/bin/sh
+case "$*" in
+"-l JavaScript -e "*) ;;
+*) exit 0 ;;
+esac
+awk -v now="$(date +%s)" 'BEGIN {
+  count = split("12 38 71 94 5 55 82 27 63 46", share, " ")
+  for (i = 1; i <= count; i++) { printf "cpu%d %d 0 0 %d\n", i - 1, now * share[i], now * (100 - share[i]) }
+}'
+CORES
+
+cat >"${demo}/bin/pmset" <<'THERMAL'
+#!/bin/sh
+printf 'Note: No thermal warning level has been recorded\n'
+printf 'Note: No performance warning level has been recorded\n'
+printf 'CPU_Scheduler_Limit = 100\n'
+if [ "$(cat /Users/Shared/demo/throttle 2>/dev/null)" = 1 ]; then
+  printf 'CPU_Speed_Limit = 70\n'
+else
+  printf 'CPU_Speed_Limit = 100\n'
+fi
+THERMAL
+
+chmod +x "${demo}/bin/iostat" "${demo}/bin/sysctl" "${demo}/bin/macmon" "${demo}/bin/osx-cpu-temp" "${demo}/bin/ps" "${demo}/bin/top" "${demo}/bin/osascript" "${demo}/bin/pmset"

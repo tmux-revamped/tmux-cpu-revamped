@@ -7,8 +7,11 @@ macmon             warn     without it the temperature stays empty on Apple Sili
 osx-cpu-temp       warn     the temperature falls back to istats on an Intel Mac
 istats             warn     without it and osx-cpu-temp the temperature stays empty on an Intel Mac
 governor           warn     macOS has no CPU governor, so the governor stays empty
+cores              warn     without osascript or macmon the per-core bars stay empty
+pmset              warn     without it the throttling flag stays off
 ps                 warn     without it the busiest process stays empty
 monitor            warn     top is not installed, so the popup names it in a message
+notifier           warn     no osascript or notify-send, so notifications stay in the status line
 settings           ok       every option holds a value it knows
 keys               ok       every key it binds is free or its own
 gum                ok       <path>
